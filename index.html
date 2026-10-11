@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1B2A49">
+<title>慣性デリバリー</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="frame">
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="hud-item"><span class="hud-label" id="lbl-speed"></span><span class="hud-value" id="val-speed"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-accel"></span><span class="hud-value" id="val-accel"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-thrust"></span><span class="hud-value" id="val-thrust"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-time"></span><span class="hud-value" id="val-time"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-fuel"></span><span class="hud-value" id="val-fuel"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-cost"></span><span class="hud-value" id="val-cost"></span></div>
+  </div>
+  <div id="remain"></div>
+  <button id="btn-pause" type="button" aria-label="一時停止">II</button>
+
+  <div id="overlay" hidden>
+    <div id="overlay-box">
+      <div id="overlay-title"></div>
+      <div id="overlay-body"></div>
+      <button id="overlay-main" type="button"></button>
+      <button id="overlay-sub" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<script src="src/config.js"></script>
+<script src="src/texts.js"></script>
+<script src="src/stages.js"></script>
+<script src="src/physics.js"></script>
+<script src="src/input.js"></script>
+<script src="src/render.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
