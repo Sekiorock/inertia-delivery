@@ -1,5 +1,5 @@
 // 起動、画面の切り替え、ゲームの進行
-// 段階3：タイトル → 機体選択 → ステージ選択 → 依頼 → プレイ → 結果
+// 段階4：タイトル → 機体選択 → ステージ選択 → 依頼 → プレイ → 結果（＋効果音・振動）
 // 進行状況は端末のブラウザの中だけに保存する（localStorage）。
 window.ID = window.ID || {};
 
@@ -40,7 +40,8 @@ window.ID = window.ID || {};
   var ship = cfg.ships[save.ship];
   var st = P.createState(stage, ship);
   var paused = false, lastTime = 0, acc = 0, lastStep = -1, lastBounce = 0;
-  var mode = 'title';         // 'title' | 'select' | 'stages' | 'brief' | 'play' | 'result'
+  var mode = 'title';         // 'title' | 'select' | 'stages' | 'brief' | 'play' | 'docked' | 'result'
+  var dockedAt = 0, dockTimer = 0;
 
   var canvas = $('game');
   var screens = ['title', 'select', 'stages', 'brief', 'result'];
@@ -48,6 +49,9 @@ window.ID = window.ID || {};
     mode = name;
     screens.forEach(function (s) { $(s).hidden = (s !== name); });
     $('overlay').hidden = true;
+    document.body.classList.toggle('playing', name === 'play');
+    clearTimeout(dockTimer);
+    ID.audio.thrust(0);
     stopAnim();
     ID.input.reset(); ID.input.setEnabled(name === 'play');
   }
@@ -85,9 +89,12 @@ window.ID = window.ID || {};
       card.type = 'button'; card.className = 'card'; card.id = 'card-' + s.id;
       function add(cls, text) { var d = document.createElement('div'); d.className = cls; if (text) d.textContent = text; card.appendChild(d); return d; }
       var pic = add('card-ship');
-      var sq = document.createElement('i');
-      sq.style.width = sq.style.height = Math.round(s.size * 22) + 'px';
-      sq.style.background = s.color; pic.appendChild(sq);
+      // 機体の絵（プレイ中と同じ絵を、大きさの比を保って描く）
+      var cv = document.createElement('canvas'), px = 64, r = Math.min(window.devicePixelRatio || 1, 3);
+      cv.width = cv.height = px * r; cv.style.width = cv.style.height = px + 'px';
+      var c2 = cv.getContext('2d'); c2.scale(r, r);
+      ID.render.drawShip(c2, s.id, px / 2, px / 2, s.size * 24);
+      pic.appendChild(cv);
       add('card-name', s.name);
       add('card-tag', s.tagline);
       function spec(label, value, ratio) {
@@ -154,23 +161,32 @@ window.ID = window.ID || {};
   function start() {
     st = P.createState(stage, ship);
     paused = false; acc = 0; lastStep = -1; lastBounce = 0;
+    ID.render.reset();
     show('play');
   }
   function resume() { paused = false; $('overlay').hidden = true; ID.input.reset(); ID.input.setEnabled(true); }
   function pause() {
     if (mode !== 'play' || paused || st.status !== 'playing') return;
     paused = true;
+    ID.audio.thrust(0);
     showOverlay(T.paused, '', [[T.resume, resume], [T.restart, start], [T.changeShip, showSelect], [T.stageSelect, showStages]]);
   }
   function finish() {
     var retry = [[T.retry, start], [T.changeShip, showSelect], [T.stageSelect, showStages]];
+    ID.audio.thrust(0);
     if (st.status === 'success') {
-      showResult(P.calcPay(st, stage, cfg));
+      // ドッキングの効果（受け取り口が「カチッ」と閉じる）を見せてから、結果の画面へ
+      mode = 'docked'; dockedAt = performance.now();
+      ID.input.setEnabled(false);
+      ID.audio.play('dock'); vibrate([30, 40, 30]);
+      var pay = P.calcPay(st, stage, cfg);
+      dockTimer = setTimeout(function () { if (mode === 'docked') showResult(pay); }, cfg.dockEffectTime * 1000);
     } else if (st.status === 'broken') {
-      vibrate(80);
+      ID.audio.play('broken'); vibrate(80);
       showOverlay(T.broken, T.brokenBody1 + st.hitSpeed.toFixed(1) + ' m/s\n' +
         T.brokenBody2 + cfg.wallBreakSpeed.toFixed(1) + ' m/s' + T.brokenBody3, retry);
     } else {
+      ID.audio.play('broken');
       showOverlay(T.out, T.outBody, retry);
     }
   }
@@ -228,7 +244,8 @@ window.ID = window.ID || {};
           var k = fast ? 1 : Math.min(1, (now - t0) / ms);
           var e = 1 - Math.pow(1 - k, 3);
           amount.textContent = yen(Math.round(from + (to - from) * e));
-          if (k < 1) requestAnimationFrame(tick); else next();
+          if (k < 1) { ID.audio.play(to >= from ? 'tickUp' : 'tickDown'); requestAnimationFrame(tick); }
+          else next();
         })(t0);
       });
     }
@@ -240,6 +257,7 @@ window.ID = window.ID || {};
     act(function () { $('row-speed').classList.remove('hide'); }); wait(250);
     act(function () { box.classList.remove('hide'); });
     count(0, pay.gross, 900);                       // 給料の総額が増えていく
+    act(function () { ID.audio.play('coin'); });
     wait(700);
     act(function () { slip.classList.add('in'); }); // 燃料代の伝票が入ってくる
     wait(700);
@@ -249,13 +267,15 @@ window.ID = window.ID || {};
       $('pay-label').textContent = pay.net < 0 ? T.deficit : T.net;
       if (pay.net < 0) $('result-title').textContent = T.deficit;
       box.classList.add('final');
+      ID.audio.play(pay.net < 0 ? 'deficit' : 'fanfare');
+      if (isBest && old && pay.net >= 0) ID.audio.play('sparkle');   // 最高手取りの更新
       $('wallet').classList.remove('hide');
       stars.classList.remove('hide');
     });
     for (var j = 0; j < 3; j++) {
       (function (j) {
-        wait(280);
-        act(function () { if (j < pay.stars) stars.children[j].classList.add('on'); });
+        wait(j === 0 ? 450 : 280);
+        act(function () { if (j < pay.stars) { stars.children[j].classList.add('on'); ID.audio.play('star', j); } });
       })(j);
     }
     wait(200);
@@ -271,16 +291,22 @@ window.ID = window.ID || {};
     if (mode === 'play' && !paused && st.status === 'playing') {
       // 3段階の機体：段が変わるたびに短く振動させる（音は段階4）
       var step = (cmd.on && ship.steps) ? P.stepIndex(cmd.level) : -1;
-      if (step !== lastStep) { if (step >= 0) vibrate(20); lastStep = step; }
+      if (step !== lastStep) { if (step >= 0) { vibrate(20); ID.audio.play('step', step); } lastStep = step; }
       acc += dt;
       while (acc >= DT) {      // 物理は1秒に120回の固定間隔
         P.step(st, cmd, DT, ship, stage, cfg);
         acc -= DT;
         if (st.status !== 'playing') { finish(); break; }
       }
-      if (st.bounceCount !== lastBounce) { vibrate(10); lastBounce = st.bounceCount; }   // 壁で跳ね返った
+      if (st.bounceCount !== lastBounce) { vibrate(10); ID.audio.play('bounce'); lastBounce = st.bounceCount; }   // 壁で跳ね返った
+      // 噴射中のうなり音（出力が大きいほど音程と音量が上がる）
+      if (st.status === 'playing') ID.audio.thrust(st.thrust > 0 ? st.thrust / ship.maxThrust : 0);
     }
-    if (mode === 'play') ID.render.draw(st, stage, ship, ID.input.state, cmd);
+    if (mode === 'play' || mode === 'docked') {
+      var fx = { dt: paused ? 0 : dt, dock: -1 };
+      if (mode === 'docked') fx.dock = Math.min(1, (now - dockedAt) / 1000 / cfg.dockEffectTime);
+      ID.render.draw(st, stage, ship, ID.input.state, cmd, fx);
+    }
     requestAnimationFrame(frame);
   }
 
@@ -302,13 +328,29 @@ window.ID = window.ID || {};
   $('btn-to-stages').addEventListener('click', showStages);
   $('btn-pause').addEventListener('click', pause);
   $('result').addEventListener('pointerdown', function () { fast = true; });   // タップで早送り
-  document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) pause();
+    ID.audio.setSuspended(document.hidden);
+  });
+  // 音のオン・オフ
+  function updateSound() {
+    var b = $('btn-sound');
+    b.classList.toggle('off', !save.sound);
+    b.setAttribute('aria-label', save.sound ? T.soundOn : T.soundOff);
+    ID.audio.setEnabled(save.sound);
+  }
+  $('btn-sound').addEventListener('click', function () { save.sound = !save.sound; writeSave(); updateSound(); });
+  // どのボタンも、押すと短く高い「ピッ」
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('button')) ID.audio.play('button');
+  });
   window.addEventListener('resize', ID.render.resize);
   window.addEventListener('orientationchange', ID.render.resize);
 
   ID.input.init(canvas, cfg);
   ID.render.init(canvas, cfg, T);
   ID.audio.init();
+  updateSound();
   buildSelect();
   showTitle();
   lastTime = performance.now();

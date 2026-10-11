@@ -89,7 +89,7 @@ html, body {
 #version {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
-  left: calc(env(safe-area-inset-left, 0px) + 8px);
+  left: 0; right: 0; text-align: center;
   font-size: 10px;
   color: rgba(27, 42, 73, 0.4);
   pointer-events: none;
@@ -221,3 +221,30 @@ html, body {
   font-size: 17px; line-height: 1.7;
 }
 #brief-info { margin-bottom: 14px; }
+
+/* ---- 段階4：音のオン・オフのボタン ---- */
+/* プレイ中は操作エリアの左下、それ以外の画面では右上に置く */
+#btn-sound {
+  position: absolute; z-index: 3;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  right: calc(env(safe-area-inset-right, 0px) + 8px);
+  width: 40px; height: 40px;
+  border: 2px solid var(--navy); border-radius: 10px;
+  background: var(--white); color: var(--navy);
+  font-size: 20px; font-weight: 700; padding: 0; line-height: 1;
+  overflow: hidden;
+}
+body.playing #btn-sound {
+  top: auto; right: auto;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  left: calc(env(safe-area-inset-left, 0px) + 12px);
+  width: 52px; height: 52px; font-size: 24px;
+}
+/* 音を消しているときは、斜線を引いて薄くする */
+#btn-sound.off { color: rgba(27, 42, 73, 0.55); border-color: rgba(27, 42, 73, 0.55); }
+#btn-sound.off::after {
+  content: ""; position: absolute; left: 50%; top: -10%;
+  width: 2px; height: 120%; background: var(--navy);
+  transform: rotate(45deg);
+}
+.card-ship canvas { display: block; }

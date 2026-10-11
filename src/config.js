@@ -2,7 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.3.0',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.4.0',        // 画面の左下に小さく表示する（更新の確認用）
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
   exhaustSpeed: 2000,      // 噴射ガスの速さ u [m/s]
@@ -40,6 +40,10 @@ ID.config = {
   zoomStartDist: 25,       // 受け取り口までこの距離でズームが始まる [m]
   zoomFullDist: 5,         // この距離で最大の拡大率になり、受け取り口が中央に来る [m]
 
+  shakePx: 1.5,            // 大型機の最大出力で画面が揺れる幅 [px]
+  dockEffectTime: 1.0,     // ドッキングの効果を見せる時間 [s]
+  volume: 0.6,             // 音量（0〜1）
+
   outMargin: 15,           // ステージの上下にこれだけ出たら場外 [m]
 
   colors: { navy: '#1B2A49', white: '#FFFFFF' },
@@ -67,7 +71,7 @@ ID.config = {
       maxThrust: 4800,
       minThrust: 1440,
       steps: [0.30, 0.65, 1.00],   // 出力は3段階
-      minBurnTime: 0.3,
+      minBurnTime: 0.1,    // 最短の噴射時間 [s]（細かく止められるように 0.3 から短くした）
       jitterDeg: 0,        // ぶれなし
       size: 2.4,
       color: '#C49A3A'

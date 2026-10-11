@@ -41,6 +41,8 @@ ID.texts = {
   controlHint2: 'なぞった向きに加速／指を離すと噴射が止まる',
   success: '配達完了',
   title: '慣性デリバリー',
+  soundOn: '音を消す',
+  soundOff: '音を出す',
   begin: 'はじめる',
   stageSelect: 'ステージ選択',
   stageList: 'ステージを選んでください',
