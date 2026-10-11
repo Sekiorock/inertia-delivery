@@ -184,6 +184,12 @@ window.ID = window.ID || {};
       ctx.beginPath(); ctx.arc(inp.originX, inp.originY, cfg.deadZonePx, 0, Math.PI * 2); ctx.stroke();
       ctx.strokeStyle = navy(0.2);
       ctx.beginPath(); ctx.arc(inp.originX, inp.originY, cfg.fullPowerPx, 0, Math.PI * 2); ctx.stroke();
+      if (ship.steps) {   // 3段階の機体：段が切り替わる位置の円
+        for (var k = 1; k < 3; k++) {
+          var rr = cfg.deadZonePx + cfg.stepThresholds[k] * (cfg.fullPowerPx - cfg.deadZonePx);
+          ctx.beginPath(); ctx.arc(inp.originX, inp.originY, rr, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
       // 触れた点からの矢印（最大出力の円より先には伸びない）
       var ddx = inp.curX - inp.originX, ddy = inp.curY - inp.originY, dd = Math.hypot(ddx, ddy);
       var pct = 0;

@@ -122,3 +122,81 @@ html, body {
 #overlay-main { background: var(--navy); color: var(--white); }
 #overlay-sub { background: var(--white); color: var(--navy); }
 #overlay-sub[hidden] { display: none; }
+
+/* ---- 段階2：機体選択と結果の画面 ---- */
+.screen {
+  position: absolute; inset: 0;
+  background: var(--white);
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.screen[hidden] { display: none; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+#select-request {
+  border: 2px solid var(--navy); border-radius: 10px;
+  padding: 10px 12px; font-size: 14px; line-height: 1.7;
+}
+#select-request b { font-size: 17px; }
+#select-title { margin: 18px 0 10px; font-size: 16px; font-weight: 700; text-align: center; }
+#select-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card {
+  font: inherit; color: var(--navy); text-align: left;
+  background: var(--white);
+  border: 2px solid var(--navy); border-radius: 12px;
+  padding: 12px 10px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.card-ship { height: 64px; display: flex; align-items: center; justify-content: center; }
+.card-ship i { display: block; border: 2px solid var(--navy); }
+.card-name { font-size: 20px; font-weight: 700; text-align: center; }
+.card-tag { font-size: 12px; text-align: center; color: rgba(27, 42, 73, 0.6); min-height: 2.6em; }
+.spec { font-size: 11px; color: rgba(27, 42, 73, 0.6); display: flex; justify-content: space-between; margin-top: 4px; }
+.spec b { color: var(--navy); font-size: 13px; }
+.bar { height: 6px; background: rgba(27, 42, 73, 0.12); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--navy); }
+.card-go {
+  margin-top: 8px; padding: 9px 0; text-align: center;
+  background: var(--navy); color: var(--white);
+  border-radius: 8px; font-weight: 700; font-size: 15px;
+}
+#select-note { margin-top: 10px; font-size: 11px; color: rgba(27, 42, 73, 0.6); text-align: center; }
+
+#result { align-items: stretch; justify-content: center; gap: 12px; padding-left: 24px; padding-right: 24px; }
+#result-title { font-size: 28px; font-weight: 700; text-align: center; }
+#result-rows { display: flex; flex-direction: column; gap: 4px; }
+.row, #slip {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 16px; padding: 4px 2px;
+  border-bottom: 1px solid rgba(27, 42, 73, 0.2);
+}
+.row .num, #slip .num { font-size: 19px; font-weight: 600; }
+#pay-box {
+  border: 2px solid var(--navy); border-radius: 12px;
+  padding: 10px 12px; text-align: center;
+  transition: background 0.3s, color 0.3s;
+}
+#pay-box.final { background: var(--navy); color: var(--white); }
+#pay-label { font-size: 14px; }
+#pay-amount { font-size: 44px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+/* 燃料代の伝票：右から画面に入ってくる */
+#slip {
+  border: 2px dashed var(--navy); border-radius: 8px; padding: 8px 12px;
+  transform: translateX(120%); opacity: 0; transition: transform 0.35s ease-out, opacity 0.1s;
+}
+#slip.in { transform: translateX(0); opacity: 1; }
+#stars { text-align: center; font-size: 40px; letter-spacing: 6px; min-height: 52px; }
+#stars span { color: rgba(27, 42, 73, 0.15); transition: color 0.15s; }
+#stars span.on { color: var(--navy); }
+#wallet { text-align: center; font-size: 15px; }
+#result-buttons button {
+  display: block; width: 100%;
+  font: inherit; font-size: 17px; font-weight: 700;
+  padding: 12px; margin-top: 8px;
+  border-radius: 8px; border: 2px solid var(--navy);
+}
+#btn-again { background: var(--navy); color: var(--white); }
+#btn-change { background: var(--white); color: var(--navy); }
+#skip-hint { text-align: center; font-size: 11px; color: rgba(27, 42, 73, 0.4); min-height: 1.4em; }
+.hide { visibility: hidden; }

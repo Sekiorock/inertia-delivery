@@ -2,7 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.1.1',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.2.0',        // 画面の左下に小さく表示する（更新の確認用）
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
   exhaustSpeed: 2000,      // 噴射ガスの速さ u [m/s]
@@ -12,7 +12,15 @@ ID.config = {
   dockMaxSpeed: 0.3,       // この速さ以下 [m/s]
   dockHoldTime: 1.0,       // 噴射なしでこの時間続く [s]
 
+  // 給料（仕様書 6章）
+  precisionBonusMax: 3000, // 精度ボーナスの上限 [円]。中心でこの額、円のふちで0円
+  speedBonusMax: 3000,     // 速達ボーナスの上限 [円]
+  speedBonusFullRatio: 0.5,// 目標時間のこの割合以下で届けると速達ボーナスが満額
+  star3Ratio: 1.2,         // 手取りが基本給のこの倍以上で星3
+  star2Ratio: 1.0,         // 手取りが基本給のこの倍以上で星2（成功すれば最低でも星1）
+
   // 操作
+  stepThresholds: [0, 0.34, 0.67],   // 3段階の機体で、段が切り替わる指の位置（0〜1）
   controlAreaRatio: 0.4,   // 画面下側の操作エリアの割合
   deadZonePx: 12,          // 噴射しない「あそび」の半径 [px]
   fullPowerPx: 120,        // 最大出力になる指の移動距離 [px]
@@ -31,10 +39,13 @@ ID.config = {
 
   colors: { navy: '#1B2A49', white: '#FFFFFF' },
 
-  // 機体（段階1は「しずか」だけ。「たけし」は段階2で追加）
+  // 機体（仕様書 5章）
   ships: {
     shizuka: {
+      id: 'shizuka',
       name: 'しずか',
+      tagline: '小回りが利く精密派',
+      steps: null,         // 出力は連続的に調整できる
       mass: 300,           // 質量 [kg]
       maxThrust: 600,      // 最大推力 [N]
       minThrust: 30,       // 最小推力 [N]
@@ -42,7 +53,21 @@ ID.config = {
       jitterDeg: 4,        // 噴射の向きのぶれ（最大） [°]
       size: 1.6,           // 四角形の一辺 [m]
       color: '#F29BB8'
+    },
+    takeshi: {
+      id: 'takeshi',
+      name: 'たけし',
+      tagline: 'パワーで押し切る安定派',
+      mass: 1200,
+      maxThrust: 4800,
+      minThrust: 1440,
+      steps: [0.30, 0.65, 1.00],   // 出力は3段階
+      minBurnTime: 0.3,
+      jitterDeg: 0,        // ぶれなし
+      size: 2.4,
+      color: '#C49A3A'
     }
   },
+  shipOrder: ['shizuka', 'takeshi'],
   defaultShip: 'shizuka'
 };

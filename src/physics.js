@@ -55,7 +55,29 @@ window.ID = window.ID || {};
 
   // 出力（0〜1）から推力 [N] を決める
   function thrustFromLevel(level, ship) {
-    return ship.minThrust + (ship.maxThrust - ship.minThrust) * level;
+    if (ship.steps) return ship.maxThrust * ship.steps[stepIndex(level)];   // 3段階
+    return ship.minThrust + (ship.maxThrust - ship.minThrust) * level;      // 連続
+  }
+
+  // 3段階の機体で、今の指の位置が何段目か（0, 1, 2）
+  function stepIndex(level) {
+    var t = ID.config.stepThresholds;
+    return level >= t[2] ? 2 : (level >= t[1] ? 1 : 0);
+  }
+
+  // 給料の計算（仕様書 6章）：手取り = 基本給 + 精度ボーナス + 速達ボーナス − 燃料代
+  function calcPay(st, stage, cfg) {
+    var precision = Math.round(cfg.precisionBonusMax * Math.max(0, 1 - st.offset / stage.dock.radius));
+    var full = stage.targetTime * cfg.speedBonusFullRatio;
+    var r = (stage.targetTime - st.t) / (stage.targetTime - full);
+    r = r < 0 ? 0 : (r > 1 ? 1 : r);
+    var speed = Math.round(cfg.speedBonusMax * r);
+    var fuelCost = Math.round(st.fuel * cfg.fuelPrice);
+    var gross = stage.basePay + precision + speed;
+    var net = gross - fuelCost;
+    var stars = net >= stage.basePay * cfg.star3Ratio ? 3 : (net >= stage.basePay * cfg.star2Ratio ? 2 : 1);
+    return { base: stage.basePay, precision: precision, speed: speed, gross: gross,
+             fuelCost: fuelCost, net: net, stars: stars };
   }
 
   // 1回分（dt秒）進める。cmd = { on, dirX, dirY, level }（dirは長さ1、yは上が正）
@@ -122,6 +144,8 @@ window.ID = window.ID || {};
     createState: createState,
     step: step,
     dockPosition: dockPosition,
-    thrustFromLevel: thrustFromLevel
+    thrustFromLevel: thrustFromLevel,
+    stepIndex: stepIndex,
+    calcPay: calcPay
   };
 })();
