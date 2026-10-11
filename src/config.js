@@ -2,11 +2,16 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.2.0',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.3.0',        // 画面の左下に小さく表示する（更新の確認用）
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
   exhaustSpeed: 2000,      // 噴射ガスの速さ u [m/s]
   fuelPrice: 1000,         // 燃料の単価 [円/kg]
+
+  // 壁との衝突（仕様書 3章）
+  wallBreakSpeed: 1.0,     // 壁に垂直な向きの速さがこれを超えると荷物破損 [m/s]
+  restitution: 0.3,        // 跳ね返るときの反発係数
+  saveKey: 'inertia-delivery-v1',   // 端末のブラウザに保存するときの名前
 
   // 配達成功の条件
   dockMaxSpeed: 0.3,       // この速さ以下 [m/s]

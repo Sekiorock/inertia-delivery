@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1B2A49">
 <title>慣性デリバリー</title>
-<link rel="stylesheet" href="style.css?v=0.2.0">
+<link rel="stylesheet" href="style.css?v=0.3.0">
 </head>
 <body>
 <div id="frame">
@@ -23,12 +23,38 @@
   <button id="btn-pause" type="button" aria-label="一時停止">II</button>
   <div id="version"></div>
 
+  <!-- タイトル -->
+  <div id="title" class="screen" hidden>
+    <div id="title-name"></div>
+    <button id="btn-begin" class="btn primary" type="button"></button>
+  </div>
+
   <!-- 機体選択 -->
   <div id="select" class="screen" hidden>
-    <div id="select-request"></div>
-    <div id="select-title"></div>
+    <div id="select-title" class="heading"></div>
     <div id="select-cards"></div>
     <div id="select-note"></div>
+  </div>
+
+  <!-- ステージ選択 -->
+  <div id="stages" class="screen" hidden>
+    <div id="stages-title" class="heading"></div>
+    <div id="stages-wallet"></div>
+    <div id="stages-list"></div>
+    <button id="btn-stages-back" class="btn" type="button"></button>
+  </div>
+
+  <!-- 依頼（冒頭のフック） -->
+  <div id="brief" class="screen" hidden>
+    <div id="brief-label"></div>
+    <div id="brief-name"></div>
+    <div id="brief-hook"></div>
+    <div id="brief-info">
+      <div class="row"><span id="brief-base-l"></span><span class="num" id="brief-base"></span></div>
+      <div class="row"><span id="brief-time-l"></span><span class="num" id="brief-time"></span></div>
+    </div>
+    <button id="btn-depart" class="btn primary" type="button"></button>
+    <button id="btn-brief-back" class="btn" type="button"></button>
   </div>
 
   <!-- 結果（給料と燃料代の天引き） -->
@@ -47,29 +73,30 @@
     <div id="stars"></div>
     <div id="wallet"></div>
     <div id="result-buttons">
-      <button id="btn-again" type="button"></button>
-      <button id="btn-change" type="button"></button>
+      <button id="btn-next" class="btn primary" type="button"></button>
+      <button id="btn-again" class="btn" type="button"></button>
+      <button id="btn-to-stages" class="btn" type="button"></button>
     </div>
     <div id="skip-hint"></div>
   </div>
 
+  <!-- 一時停止・失敗 -->
   <div id="overlay" hidden>
     <div id="overlay-box">
       <div id="overlay-title"></div>
       <div id="overlay-body"></div>
-      <button id="overlay-main" type="button"></button>
-      <button id="overlay-sub" type="button"></button>
+      <div id="overlay-buttons"></div>
     </div>
   </div>
 </div>
 
-<script src="src/config.js?v=0.2.0"></script>
-<script src="src/texts.js?v=0.2.0"></script>
-<script src="src/stages.js?v=0.2.0"></script>
-<script src="src/physics.js?v=0.2.0"></script>
-<script src="src/input.js?v=0.2.0"></script>
-<script src="src/render.js?v=0.2.0"></script>
-<script src="src/audio.js?v=0.2.0"></script>
-<script src="src/main.js?v=0.2.0"></script>
+<script src="src/config.js?v=0.3.0"></script>
+<script src="src/texts.js?v=0.3.0"></script>
+<script src="src/stages.js?v=0.3.0"></script>
+<script src="src/physics.js?v=0.3.0"></script>
+<script src="src/input.js?v=0.3.0"></script>
+<script src="src/render.js?v=0.3.0"></script>
+<script src="src/audio.js?v=0.3.0"></script>
+<script src="src/main.js?v=0.3.0"></script>
 </body>
 </html>

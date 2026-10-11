@@ -27,8 +27,10 @@ window.ID = window.ID || {};
       started: false,
       fuel: 0,               // 使った燃料 [kg]
       hold: 0,               // 成功条件を満たし続けた時間 [s]
-      status: 'playing',     // 'playing' | 'success' | 'out'
+      status: 'playing',     // 'playing' | 'success' | 'broken' | 'out'
       offset: 0,             // 成功時の中心からのずれ [m]
+      hitSpeed: 0,           // 荷物破損のときの、壁に垂直な向きの速さ [m/s]
+      bounceCount: 0,        // 壁で跳ね返った回数
       burnTime: 0,           // 今の噴射が続いている時間 [s]
       lastCmd: null,
       // ぶれ用の波の位相（ステージごとに決まる）
@@ -37,11 +39,45 @@ window.ID = window.ID || {};
   }
 
   // 受け取り口の今の位置（ステージ4では動く）
+  // bounds があるときは、その範囲を同じ速さで往復する。
   function dockPosition(stage, t) {
-    return {
-      x: stage.dock.x + stage.dock.velocity.x * t,
-      y: stage.dock.y + stage.dock.velocity.y * t
-    };
+    var d = stage.dock, v = d.velocity, b = d.bounds;
+    if (b && v.x !== 0) {
+      var span = b.xMax - b.xMin, sp = Math.abs(v.x);
+      var p = (d.x - b.xMin + sp * t) % (2 * span);
+      if (p <= span) return { x: b.xMin + p, y: d.y, vx: sp, vy: 0 };
+      return { x: b.xMax - (p - span), y: d.y, vx: -sp, vy: 0 };
+    }
+    return { x: d.x + v.x * t, y: d.y + v.y * t, vx: v.x, vy: v.y };
+  }
+
+  // 壁との衝突。機体は一辺 size の四角形として扱う。
+  // 壁に垂直な向きの速さが上限以下なら跳ね返り、超えると荷物破損。
+  function collide(st, px, py, ship, stage, cfg) {
+    var half = ship.size / 2, walls = stage.walls;
+    for (var i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      var x0 = w.x - half, x1 = w.x + w.w + half, y0 = w.y - half, y1 = w.y + w.h + half;
+      if (!(st.x > x0 && st.x < x1 && st.y > y0 && st.y < y1)) continue;
+      var outX = px <= x0 || px >= x1, outY = py <= y0 || py >= y1;
+      var axisX;
+      if (outX && !outY) axisX = true;
+      else if (outY && !outX) axisX = false;
+      else axisX = Math.min(st.x - x0, x1 - st.x) < Math.min(st.y - y0, y1 - st.y);
+      var vp = Math.abs(axisX ? st.vx : st.vy);
+      if (vp > cfg.wallBreakSpeed + 1e-9 && !stage.noFail) {
+        st.status = 'broken'; st.hitSpeed = vp;
+        return;
+      }
+      if (axisX) {
+        st.x = (st.x - x0 < x1 - st.x) ? x0 : x1;
+        st.vx = -cfg.restitution * st.vx;      // 垂直な向きは逆向きで0.3倍
+      } else {
+        st.y = (st.y - y0 < y1 - st.y) ? y0 : y1;
+        st.vy = -cfg.restitution * st.vy;      // 壁に沿った向きは変わらない
+      }
+      if (vp > 0.05) st.bounceCount++;
+    }
   }
 
   // 噴射の向きのぶれ [rad]。ゆっくり変化する。
@@ -110,6 +146,7 @@ window.ID = window.ID || {};
     }
 
     // 等加速度運動の式でそのまま計算する
+    var px = st.x, py = st.y;
     st.x += st.vx * dt + 0.5 * ax * dt * dt;
     st.y += st.vy * dt + 0.5 * ay * dt * dt;
     st.vx += ax * dt;
@@ -117,6 +154,9 @@ window.ID = window.ID || {};
     st.ax = ax; st.ay = ay; st.thrust = F;
     st.thrustDirX = dx; st.thrustDirY = dy;
     if (st.started) st.t += dt;
+
+    collide(st, px, py, ship, stage, cfg);
+    if (st.status !== 'playing') return;
 
     // 場外
     if (st.x < 0 || st.x > cfg.worldWidth ||
@@ -128,7 +168,7 @@ window.ID = window.ID || {};
     // 配達成功：円の内側・速さ0.3 m/s以下・噴射なしが1秒続く
     var d = dockPosition(stage, st.t);
     var dist = Math.hypot(st.x - d.x, st.y - d.y);
-    var rel = Math.hypot(st.vx - stage.dock.velocity.x, st.vy - stage.dock.velocity.y);
+    var rel = Math.hypot(st.vx - d.vx, st.vy - d.vy);
     if (F === 0 && dist <= stage.dock.radius && rel <= cfg.dockMaxSpeed) {
       st.hold += dt;
       if (st.hold >= cfg.dockHoldTime) {

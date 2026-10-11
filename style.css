@@ -67,6 +67,7 @@ html, body {
 }
 #remain {
   grid-column: 1 / -1;
+  min-height: 1.5em;
   text-align: center;
   font-size: 13px;
   color: rgba(27, 42, 73, 0.6);
@@ -113,15 +114,6 @@ html, body {
   white-space: pre-line;
   font-variant-numeric: tabular-nums;
 }
-#overlay-box button {
-  display: block; width: 100%;
-  font: inherit; font-size: 17px; font-weight: 700;
-  padding: 12px; margin-top: 8px;
-  border-radius: 8px; border: 2px solid var(--navy);
-}
-#overlay-main { background: var(--navy); color: var(--white); }
-#overlay-sub { background: var(--white); color: var(--navy); }
-#overlay-sub[hidden] { display: none; }
 
 /* ---- 段階2：機体選択と結果の画面 ---- */
 .screen {
@@ -134,12 +126,6 @@ html, body {
 .screen[hidden] { display: none; }
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
-#select-request {
-  border: 2px solid var(--navy); border-radius: 10px;
-  padding: 10px 12px; font-size: 14px; line-height: 1.7;
-}
-#select-request b { font-size: 17px; }
-#select-title { margin: 18px 0 10px; font-size: 16px; font-weight: 700; text-align: center; }
 #select-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .card {
   font: inherit; color: var(--navy); text-align: left;
@@ -163,7 +149,7 @@ html, body {
 }
 #select-note { margin-top: 10px; font-size: 11px; color: rgba(27, 42, 73, 0.6); text-align: center; }
 
-#result { align-items: stretch; justify-content: center; gap: 12px; padding-left: 24px; padding-right: 24px; }
+#result { align-items: stretch; justify-content: center; gap: 10px; padding-left: 24px; padding-right: 24px; }
 #result-title { font-size: 28px; font-weight: 700; text-align: center; }
 #result-rows { display: flex; flex-direction: column; gap: 4px; }
 .row, #slip {
@@ -190,13 +176,48 @@ html, body {
 #stars span { color: rgba(27, 42, 73, 0.15); transition: color 0.15s; }
 #stars span.on { color: var(--navy); }
 #wallet { text-align: center; font-size: 15px; }
-#result-buttons button {
-  display: block; width: 100%;
-  font: inherit; font-size: 17px; font-weight: 700;
-  padding: 12px; margin-top: 8px;
-  border-radius: 8px; border: 2px solid var(--navy);
-}
-#btn-again { background: var(--navy); color: var(--white); }
-#btn-change { background: var(--white); color: var(--navy); }
 #skip-hint { text-align: center; font-size: 11px; color: rgba(27, 42, 73, 0.4); min-height: 1.4em; }
 .hide { visibility: hidden; }
+
+/* ---- 段階3：共通のボタン、タイトル、ステージ選択、依頼 ---- */
+.btn {
+  display: block; width: 100%;
+  font: inherit; font-size: 17px; font-weight: 700;
+  padding: 11px; margin-top: 8px;
+  border-radius: 8px; border: 2px solid var(--navy);
+  background: var(--white); color: var(--navy);
+}
+.btn.primary { background: var(--navy); color: var(--white); }
+.btn[hidden] { display: none; }
+.heading { margin: 4px 0 12px; font-size: 17px; font-weight: 700; text-align: center; }
+
+#title { justify-content: center; align-items: center; gap: 48px; }
+#title-name { font-size: 38px; font-weight: 700; letter-spacing: 2px; }
+#title .btn { width: 70%; font-size: 20px; padding: 14px; }
+
+#stages-wallet { text-align: center; font-size: 14px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+#stages-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
+.stage-item {
+  font: inherit; color: var(--navy); text-align: left;
+  background: var(--white);
+  border: 2px solid var(--navy); border-radius: 10px;
+  padding: 9px 12px;
+  display: grid; grid-template-columns: 30px 1fr auto; align-items: center; column-gap: 8px;
+}
+.stage-no { font-size: 22px; font-weight: 700; grid-row: span 2; }
+.stage-name { font-size: 17px; font-weight: 700; }
+.stage-stars { font-size: 17px; letter-spacing: 2px; }
+.stage-stars i { font-style: normal; color: rgba(27, 42, 73, 0.15); }
+.stage-stars i.on { color: var(--navy); }
+.stage-sub { grid-column: 2 / 4; font-size: 12px; color: rgba(27, 42, 73, 0.6); font-variant-numeric: tabular-nums; }
+.stage-item.locked { border-color: rgba(27, 42, 73, 0.2); color: rgba(27, 42, 73, 0.4); }
+
+#brief { justify-content: center; padding-left: 24px; padding-right: 24px; gap: 6px; }
+#brief-label { font-size: 14px; color: rgba(27, 42, 73, 0.6); text-align: center; }
+#brief-name { font-size: 28px; font-weight: 700; text-align: center; }
+#brief-hook {
+  margin: 14px 0; padding: 14px;
+  border: 2px solid var(--navy); border-radius: 12px;
+  font-size: 17px; line-height: 1.7;
+}
+#brief-info { margin-bottom: 14px; }

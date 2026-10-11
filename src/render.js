@@ -4,7 +4,7 @@ window.ID = window.ID || {};
 
 (function () {
   var canvas, ctx, cfg, T, W = 0, H = 0, dpr = 1;
-  var el = {}, hudBottom = 0;
+  var el = {}, hudBottom = 0, hudDirty = true;
 
   function init(canvasEl, config, texts) {
     canvas = canvasEl; ctx = canvas.getContext('2d'); cfg = config; T = texts;
@@ -23,7 +23,7 @@ window.ID = window.ID || {};
     W = r.width; H = r.height;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
-    hudBottom = document.getElementById('hud').getBoundingClientRect().bottom - r.top;
+    hudDirty = true;   // 数値の欄の高さは、次の描画のあとで測り直す
   }
 
   function navy(a) { return 'rgba(27,42,73,' + a + ')'; }
@@ -211,6 +211,10 @@ window.ID = window.ID || {};
     el.fuel.textContent = st.fuel.toFixed(2) + ' kg';
     el.cost.textContent = Math.round(st.fuel * cfg.fuelPrice).toLocaleString('ja-JP') + '円';
     el.remain.textContent = T.remain + dist.toFixed(1) + ' m';
+    if (hudDirty) {   // 数値が入った状態で、欄の下端の位置を測る
+      hudBottom = document.getElementById('hud').getBoundingClientRect().bottom - canvas.getBoundingClientRect().top;
+      hudDirty = false;
+    }
   }
 
   ID.render = { init: init, resize: resize, draw: draw };
