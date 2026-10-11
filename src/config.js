@@ -2,6 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
+  version: '0.1.1',        // 画面の左下に小さく表示する（更新の確認用）
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
   exhaustSpeed: 2000,      // 噴射ガスの速さ u [m/s]
@@ -20,6 +21,11 @@ ID.config = {
   velArrowScale: 0.6,      // 速度 1 m/s あたりの長さ [m]
   accArrowScale: 2.0,      // 加速度 1 m/s² あたりの長さ [m]
   arrowMaxLength: 14,      // 矢印の長さの上限 [m]
+
+  // 受け取り口に近づいたときのズーム（精密な操作のため）
+  zoomMax: 2.5,            // 最大の拡大率
+  zoomStartDist: 25,       // 受け取り口までこの距離でズームが始まる [m]
+  zoomFullDist: 5,         // この距離で最大の拡大率になり、受け取り口が中央に来る [m]
 
   outMargin: 15,           // ステージの上下にこれだけ出たら場外 [m]
 

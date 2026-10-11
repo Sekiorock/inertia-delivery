@@ -37,12 +37,12 @@ html, body {
   display: block;
   touch-action: none;
 }
-/* 画面上部の数値（SI単位） */
+/* 画面上部の数値（SI単位）。横幅いっぱいに使う */
 #hud {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 6px);
   left: calc(env(safe-area-inset-left, 0px) + 8px);
-  right: calc(env(safe-area-inset-right, 0px) + 56px);
+  right: calc(env(safe-area-inset-right, 0px) + 8px);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px 6px;
@@ -53,38 +53,45 @@ html, body {
   flex-direction: column;
   background: rgba(255, 255, 255, 0.85);
   border-left: 2px solid rgba(27, 42, 73, 0.4);
-  padding: 1px 0 1px 6px;
+  padding: 2px 0 2px 7px;
   min-width: 0;
 }
-.hud-label { font-size: 10px; color: rgba(27, 42, 73, 0.6); white-space: nowrap; }
+.hud-label { font-size: 11px; color: rgba(27, 42, 73, 0.6); white-space: nowrap; }
 .hud-value {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: clamp(17px, 5.4vw, 22px);
+  line-height: 1.25;
+  font-weight: 700;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 #remain {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 84px);
-  left: 0; right: 0;
+  grid-column: 1 / -1;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(27, 42, 73, 0.6);
   font-variant-numeric: tabular-nums;
-  pointer-events: none;
 }
+/* 一時停止ボタン：操作エリアの右下（親指で押しやすい位置） */
 #btn-pause {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 6px);
-  right: calc(env(safe-area-inset-right, 0px) + 8px);
-  width: 40px; height: 40px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  right: calc(env(safe-area-inset-right, 0px) + 12px);
+  width: 52px; height: 52px;
   border: 2px solid var(--navy);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--white);
   color: var(--navy);
-  font-size: 14px; font-weight: 700;
+  font-size: 16px; font-weight: 700;
   padding: 0;
+}
+#version {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+  left: calc(env(safe-area-inset-left, 0px) + 8px);
+  font-size: 10px;
+  color: rgba(27, 42, 73, 0.4);
+  pointer-events: none;
 }
 #overlay {
   position: absolute; inset: 0;

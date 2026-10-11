@@ -4,7 +4,7 @@ window.ID = window.ID || {};
 
 (function () {
   var canvas, ctx, cfg, T, W = 0, H = 0, dpr = 1;
-  var el = {};
+  var el = {}, hudBottom = 0;
 
   function init(canvasEl, config, texts) {
     canvas = canvasEl; ctx = canvas.getContext('2d'); cfg = config; T = texts;
@@ -13,6 +13,7 @@ window.ID = window.ID || {};
       el[k] = document.getElementById('val-' + k);
     });
     el.remain = document.getElementById('remain');
+    document.getElementById('version').textContent = 'v' + cfg.version;
     resize();
   }
 
@@ -22,6 +23,7 @@ window.ID = window.ID || {};
     W = r.width; H = r.height;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
+    hudBottom = document.getElementById('hud').getBoundingClientRect().bottom - r.top;
   }
 
   function navy(a) { return 'rgba(27,42,73,' + a + ')'; }
@@ -53,28 +55,53 @@ window.ID = window.ID || {};
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = cfg.colors.white; ctx.fillRect(0, 0, W, H);
 
-    var s = W / cfg.worldWidth;                    // 1 m あたりの px
     var stageH = H * (1 - cfg.controlAreaRatio);   // ステージ表示の高さ [px]
-    var viewM = stageH / s;                        // 見えている高さ [m]
 
-    // カメラ：機体を下から30%の位置に置き、上へ進む先を広く見せる
-    var camY = st.y - viewM * 0.3;
-    var camMax = stage.height + 5 - viewM, camMin = -3;
-    if (camY > camMax) camY = camMax;
-    if (camY < camMin) camY = camMin;
-    function sx(x) { return x * s; }
-    function sy(y) { return stageH - (y - camY) * s; }
+    // 受け取り口に近づくほどズームし、受け取り口を画面の中央に寄せる
+    var d = P.dockPosition(stage, st.t);
+    var dist = Math.hypot(st.x - d.x, st.y - d.y);
+    var zt = (cfg.zoomStartDist - dist) / (cfg.zoomStartDist - cfg.zoomFullDist);
+    zt = zt < 0 ? 0 : (zt > 1 ? 1 : zt);
+    var zoom = 1 + (cfg.zoomMax - 1) * zt;
+
+    var s = W / cfg.worldWidth * zoom;             // 1 m あたりの px
+    var viewW = W / s, viewM = stageH / s;         // 見えている幅と高さ [m]
+
+    // 遠いとき：機体を下から30%の位置に置き、上へ進む先を広く見せる
+    var cx = cfg.worldWidth / 2;
+    var cy = st.y + viewM * 0.2;
+    var cyMin = -3 + viewM / 2, cyMax = stage.height + 5 - viewM / 2;
+    if (cy > cyMax) cy = cyMax;
+    if (cy < cyMin) cy = cyMin;
+    // 近いとき：受け取り口を中央へ
+    cx += (d.x - cx) * zt;
+    cy += (d.y - cy) * zt;
+    // 機体が画面の外に出ないようにする
+    var rx = viewW / 2 - viewW * 0.12 * zt, ry = viewM / 2 - viewM * 0.12;
+    if (cx < st.x - rx) cx = st.x - rx;
+    if (cx > st.x + rx) cx = st.x + rx;
+    if (cy < st.y - ry) cy = st.y - ry;
+    if (cy > st.y + ry) cy = st.y + ry;
+
+    function sx(x) { return W / 2 + (x - cx) * s; }
+    // ズーム中は、上の数値に隠れない範囲の中央に受け取り口が来るようにする
+    var midY = stageH / 2 + hudBottom / 2 * zt;
+    function sy(y) { return midY - (y - cy) * s; }
 
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, W, stageH); ctx.clip();
 
-    // グリッド（5 m ごと）。動いて見えることで速さが分かる
-    ctx.strokeStyle = navy(0.12); ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (var gx = 0; gx <= cfg.worldWidth; gx += 5) { ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), stageH); }
-    var g0 = Math.floor(camY / 5) * 5;
-    for (var gy = g0; gy <= camY + viewM + 5; gy += 5) { ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); }
-    ctx.stroke();
+    // グリッド。動いて見えることで速さが分かる
+    var x0 = cx - viewW / 2, x1 = cx + viewW / 2, y0 = cy - viewM, y1 = cy + viewM;
+    function grid(stepM, alpha) {
+      ctx.strokeStyle = navy(alpha); ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (var gx = Math.floor(x0 / stepM) * stepM; gx <= x1; gx += stepM) { ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), stageH); }
+      for (var gy = Math.floor(y0 / stepM) * stepM; gy <= y1; gy += stepM) { ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); }
+      ctx.stroke();
+    }
+    if (zt > 0.3) grid(1, 0.07 * (zt - 0.3) / 0.7);   // ズーム中は 1 m ごとの細かい線
+    grid(5, 0.12);                                    // 5 m ごと
 
     // 通路の壁
     ctx.fillStyle = navy(0.4);
@@ -83,7 +110,6 @@ window.ID = window.ID || {};
     });
 
     // 受け取り口
-    var d = P.dockPosition(stage, st.t);
     var dx = sx(d.x), dy = sy(d.y), dr = stage.dock.radius * s;
     ctx.fillStyle = navy(0.15);
     ctx.beginPath(); ctx.arc(dx, dy, dr, 0, Math.PI * 2); ctx.fill();
@@ -98,9 +124,9 @@ window.ID = window.ID || {};
       ctx.stroke();
     }
     // 受け取り口が画面の上に隠れているときの目印
-    if (dy < 0) {
+    if (dy < hudBottom) {
       ctx.fillStyle = cfg.colors.navy;
-      var my = 112;
+      var my = hudBottom + 6;
       ctx.beginPath(); ctx.moveTo(dx, my); ctx.lineTo(dx - 8, my + 12); ctx.lineTo(dx + 8, my + 12); ctx.closePath(); ctx.fill();
     }
 
@@ -178,7 +204,7 @@ window.ID = window.ID || {};
     el.time.textContent = st.t.toFixed(1) + ' s';
     el.fuel.textContent = st.fuel.toFixed(2) + ' kg';
     el.cost.textContent = Math.round(st.fuel * cfg.fuelPrice).toLocaleString('ja-JP') + '円';
-    el.remain.textContent = T.remain + Math.hypot(st.x - d.x, st.y - d.y).toFixed(1) + ' m';
+    el.remain.textContent = T.remain + dist.toFixed(1) + ' m';
   }
 
   ID.render = { init: init, resize: resize, draw: draw };
