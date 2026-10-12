@@ -32,6 +32,33 @@ window.ID = window.ID || {};
   function reset() { particles.length = 0; emitRest = 0; }
 
   function navy(a) { return 'rgba(27,42,73,' + a + ')'; }
+  var FG = '#FFFFFF';   // 宇宙の背景の上に描くものの色
+  function fg(a) { return 'rgba(255,255,255,' + a + ')'; }
+
+  // 星。ステージごとに決まった並びで、機体が動くとゆっくり流れる（遠くにあるように見せる）
+  var stars = [], starsFor = null, TILE_W = 40, TILE_H = 80;
+  function makeStars(stage) {
+    var a = (stage.seed * 7919) >>> 0;
+    function rnd() { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }
+    stars = [];
+    for (var i = 0; i < cfg.starCount; i++) {
+      var far = rnd();
+      stars.push({ x: rnd() * TILE_W, y: rnd() * TILE_H, par: 0.15 + 0.35 * far,
+                   r: 0.5 + 1.1 * far * rnd(), al: 0.35 + 0.6 * rnd() });
+    }
+    starsFor = stage.id;
+  }
+  function drawStars(stage, cx, cy, zoom, midY, shx, shy) {
+    if (starsFor !== stage.id) makeStars(stage);
+    var ss = W / cfg.worldWidth * (1 + (zoom - 1) * 0.25);
+    for (var i = 0; i < stars.length; i++) {
+      var p = stars[i];
+      var dx = ((p.x - cx * p.par) % TILE_W + TILE_W) % TILE_W - TILE_W / 2;
+      var dy = ((p.y - cy * p.par) % TILE_H + TILE_H) % TILE_H - TILE_H / 2;
+      ctx.fillStyle = fg(p.al);
+      ctx.beginPath(); ctx.arc(W / 2 + dx * ss + shx, midY - dy * ss + shy, p.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 
   function roundRect(c, x, y, w, h, r) {
     r = Math.min(r, w / 2, h / 2);
@@ -46,15 +73,31 @@ window.ID = window.ID || {};
 
   // ---------- 機体の絵（デフォルメした小型のメカ） ----------
   // (cx, cy) が中心、u が機体の一辺の長さ [px]。座標は u を 1 とした割合で書く。
-  function drawShip(c, id, cx, cy, u) {
+  function drawShip(c, id, cx, cy, u, glow) {
     var NV = cfg.colors.navy, WH = cfg.colors.white;
     c.save();
     c.translate(cx, cy);
     c.lineJoin = 'round'; c.lineCap = 'round';
-    c.lineWidth = Math.max(1.5, u * 0.035);
+    var lw = Math.max(1.5, u * 0.035);
+    c.lineWidth = lw;
     c.strokeStyle = NV;
-    function box(x, y, w, h, r, fill) { roundRect(c, x * u, y * u, w * u, h * u, r * u); c.fillStyle = fill; c.fill(); c.stroke(); }
-    function circle(x, y, r, fill, stroke) { c.beginPath(); c.arc(x * u, y * u, r * u, 0, Math.PI * 2); c.fillStyle = fill; c.fill(); if (stroke !== false) c.stroke(); }
+    // halo=true のあいだは、形だけを白い太線でなぞる（暗い背景でも輪郭が見えるように）
+    var halo = false;
+    function paint(fill, stroke) {
+      if (halo) { c.stroke(); return; }
+      c.fillStyle = fill; c.fill(); if (stroke !== false) c.stroke();
+    }
+    function box(x, y, w, h, r, fill) { roundRect(c, x * u, y * u, w * u, h * u, r * u); paint(fill); }
+    function circle(x, y, r, fill, stroke) { c.beginPath(); c.arc(x * u, y * u, r * u, 0, Math.PI * 2); paint(fill, stroke); }
+    if (glow) {
+      halo = true; c.strokeStyle = WH; c.lineWidth = lw * 2.6;
+      body();
+      halo = false; c.strokeStyle = NV; c.lineWidth = lw;
+    }
+    body();
+    c.restore();
+
+    function body() {
 
     if (id === 'takeshi') {
       // たけし：肩幅の広い装甲と太いアーム。頑丈で強い印象
@@ -68,6 +111,7 @@ window.ID = window.ID || {};
       box(-0.50, -0.38, 0.27, 0.30, 0.08, light);          // 肩の装甲
       box(0.23, -0.38, 0.27, 0.30, 0.08, light);
       box(-0.17, -0.20, 0.34, 0.11, 0.05, WH);             // バイザー
+      if (halo) return;
       c.fillStyle = NV; roundRect(c, -0.11 * u, -0.17 * u, 0.22 * u, 0.05 * u, 0.02 * u); c.fill();
       c.beginPath();                                        // 胸のパネル
       c.moveTo(-0.17 * u, 0.04 * u); c.lineTo(0.17 * u, 0.04 * u);
@@ -87,17 +131,18 @@ window.ID = window.ID || {};
       box(-0.13, 0.36, 0.09, 0.13, 0.03, pdark);           // 足
       box(0.04, 0.36, 0.09, 0.13, 0.03, pdark);
       box(-0.20, -0.42, 0.40, 0.84, 0.20, pink);           // 細い胴体
+      if (halo) return;
       c.beginPath(); c.ellipse(0, 0.17 * u, 0.11 * u, 0.15 * u, 0, 0, Math.PI * 2);
       c.fillStyle = plight; c.fill();                       // おなかのパネル
       circle(0, -0.17, 0.12, WH);                           // 丸いレンズ
       circle(0, -0.17, 0.055, NV, false);
       circle(0.02, -0.19, 0.018, WH, false);
     }
-    c.restore();
+    }
   }
 
   // 矢印。filled=true は塗りつぶし（速度）、false は線のみ（加速度）
-  function arrow(x1, y1, x2, y2, filled, color) {
+  function arrow(x1, y1, x2, y2, filled, color, back) {
     var dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
     if (len < 3) return;
     var ux = dx / len, uy = dy / len;
@@ -112,7 +157,7 @@ window.ID = window.ID || {};
     ctx.lineTo(bx + uy * half, by - ux * half);
     ctx.closePath();
     if (filled) { ctx.fill(); }
-    else { ctx.lineWidth = 2; ctx.fillStyle = cfg.colors.white; ctx.fill(); ctx.stroke(); }
+    else { ctx.lineWidth = 2; ctx.fillStyle = back || cfg.colors.white; ctx.fill(); ctx.stroke(); }
   }
 
   function clampLen(v) { return v > cfg.arrowMaxLength ? cfg.arrowMaxLength : v; }
@@ -198,20 +243,26 @@ window.ID = window.ID || {};
     ctx.save();
     ctx.beginPath(); ctx.rect(0, 0, W, stageH); ctx.clip();
 
+    // 宇宙の背景（上ほど暗い）と星
+    var bg = ctx.createLinearGradient(0, 0, 0, stageH);
+    bg.addColorStop(0, cfg.colors.spaceTop); bg.addColorStop(1, cfg.colors.spaceBottom);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, stageH);
+    drawStars(stage, cx, cy, zoom, midY, shx, shy);
+
     // グリッド。動いて見えることで速さが分かる
     var x0 = cx - viewW / 2, x1 = cx + viewW / 2, y0 = cy - viewM, y1 = cy + viewM;
     function grid(stepM, alpha) {
-      ctx.strokeStyle = navy(alpha); ctx.lineWidth = 1;
+      ctx.strokeStyle = fg(alpha); ctx.lineWidth = 1;
       ctx.beginPath();
       for (var gx = Math.floor(x0 / stepM) * stepM; gx <= x1; gx += stepM) { ctx.moveTo(sx(gx), 0); ctx.lineTo(sx(gx), stageH); }
       for (var gy = Math.floor(y0 / stepM) * stepM; gy <= y1; gy += stepM) { ctx.moveTo(0, sy(gy)); ctx.lineTo(W, sy(gy)); }
       ctx.stroke();
     }
-    if (zt > 0.3) grid(1, 0.07 * (zt - 0.3) / 0.7);   // ズーム中は 1 m ごとの細かい線
-    grid(5, 0.12);                                    // 5 m ごと
+    if (zt > 0.3) grid(1, cfg.gridAlphaFine * (zt - 0.3) / 0.7);   // ズーム中は 1 m ごとの細かい線
+    grid(5, cfg.gridAlpha);                                    // 5 m ごと
 
     // 通路の壁
-    ctx.fillStyle = navy(0.4);
+    ctx.fillStyle = fg(0.45);
     stage.walls.forEach(function (w) {
       ctx.fillRect(sx(w.x), sy(w.y + w.h), w.w * s, w.h * s);
     });
@@ -219,9 +270,9 @@ window.ID = window.ID || {};
     // 受け取り口
     var dx = sx(d.x), dy = sy(d.y), dr = stage.dock.radius * s;
     var k = fx.dock;   // ドッキングの効果（0〜1）
-    ctx.fillStyle = navy(k >= 0 ? 0.15 + 0.2 * Math.min(1, k * 3) : 0.15);
+    ctx.fillStyle = fg(k >= 0 ? 0.15 + 0.2 * Math.min(1, k * 3) : 0.15);
     ctx.beginPath(); ctx.arc(dx, dy, dr, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = cfg.colors.navy; ctx.lineWidth = 3;
+    ctx.strokeStyle = FG; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(dx, dy, dr, 0, Math.PI * 2); ctx.stroke();
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(dx - 5, dy); ctx.lineTo(dx + 5, dy); ctx.moveTo(dx, dy - 5); ctx.lineTo(dx, dy + 5); ctx.stroke();
@@ -239,10 +290,10 @@ window.ID = window.ID || {};
       // 閉じた瞬間に広がる輪
       if (k > 0.25) {
         var c2 = (k - 0.25) / 0.75;
-        ctx.strokeStyle = navy(0.5 * (1 - c2)); ctx.lineWidth = 3;
+        ctx.strokeStyle = fg(0.5 * (1 - c2)); ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(dx, dy, dr + 6 + c2 * dr * 1.5, 0, Math.PI * 2); ctx.stroke();
         // 4か所の留め具
-        ctx.strokeStyle = cfg.colors.navy; ctx.lineWidth = 5; ctx.lineCap = 'butt';
+        ctx.strokeStyle = FG; ctx.lineWidth = 5; ctx.lineCap = 'butt';
         ctx.beginPath();
         for (var q = 0; q < 4; q++) {
           var qa = Math.PI / 4 + q * Math.PI / 2;
@@ -254,7 +305,7 @@ window.ID = window.ID || {};
     }
     // 受け取り口が画面の上に隠れているときの目印
     if (dy < hudBottom) {
-      ctx.fillStyle = cfg.colors.navy;
+      ctx.fillStyle = FG;
       var my = hudBottom + 6;
       ctx.beginPath(); ctx.moveTo(dx, my); ctx.lineTo(dx - 8, my + 12); ctx.lineTo(dx + 8, my + 12); ctx.closePath(); ctx.fill();
     }
@@ -264,25 +315,25 @@ window.ID = window.ID || {};
     updateParticles(fx.dt);
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i], life = 1 - p.age / p.life;
-      ctx.fillStyle = navy(0.55 * life);
+      ctx.fillStyle = fg(0.8 * life);
       ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), Math.max(1, p.r * s * (0.5 + 0.5 * life)), 0, Math.PI * 2); ctx.fill();
     }
 
     // 機体
     var px = sx(st.x), py = sy(st.y);
-    drawShip(ctx, ship.id, px, py, ship.size * s);
+    drawShip(ctx, ship.id, px, py, ship.size * s, true);
 
     // 速度の矢印（塗りつぶし）
     var v = Math.hypot(st.vx, st.vy);
     if (v > 0.01 && k < 0) {
       var vl = clampLen(v * cfg.velArrowScale) * s;
-      arrow(px, py, px + st.vx / v * vl, py - st.vy / v * vl, true, cfg.colors.navy);
+      arrow(px, py, px + st.vx / v * vl, py - st.vy / v * vl, true, FG, cfg.colors.spaceBottom);
     }
     // 加速度の矢印（線のみ）
     var a = Math.hypot(st.ax, st.ay);
     if (a > 0) {
       var al = clampLen(a * cfg.accArrowScale) * s;
-      arrow(px, py, px + st.ax / a * al, py - st.ay / a * al, false, cfg.colors.navy);
+      arrow(px, py, px + st.ax / a * al, py - st.ay / a * al, false, FG, cfg.colors.spaceBottom);
     }
 
     // 「配達完了」の表示
@@ -290,8 +341,8 @@ window.ID = window.ID || {};
       var tw = 190, th = 48, tx = W / 2 - tw / 2, ty = Math.max(hudBottom + 16, dy - dr - 90);
       var pop = Math.min(1, k / 0.2);
       ctx.globalAlpha = pop;
-      roundRect(ctx, tx, ty, tw, th, 10); ctx.fillStyle = cfg.colors.navy; ctx.fill();
-      ctx.fillStyle = cfg.colors.white; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      roundRect(ctx, tx, ty, tw, th, 10); ctx.fillStyle = FG; ctx.fill();
+      ctx.fillStyle = cfg.colors.navy; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = '700 24px ' + FONT;
       ctx.fillText(T.success, W / 2, ty + th / 2 + 1);
       ctx.globalAlpha = 1;

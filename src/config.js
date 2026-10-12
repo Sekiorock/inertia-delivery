@@ -2,7 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.4.0',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.4.1',        // 画面の左下に小さく表示する（更新の確認用）
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
   exhaustSpeed: 2000,      // 噴射ガスの速さ u [m/s]
@@ -46,7 +46,11 @@ ID.config = {
 
   outMargin: 15,           // ステージの上下にこれだけ出たら場外 [m]
 
-  colors: { navy: '#1B2A49', white: '#FFFFFF' },
+  colors: { navy: '#1B2A49', white: '#FFFFFF',
+            spaceTop: '#070C1A', spaceBottom: '#16223D' },   // 宇宙の背景（上の色と下の色）
+  gridAlpha: 0.22,         // 5 m ごとの目盛り線の濃さ（0＝見えない、1＝真っ白）
+  gridAlphaFine: 0.12,     // ズーム中の 1 m ごとの目盛り線の濃さ
+  starCount: 110,          // 星の数
 
   // 機体（仕様書 5章）
   ships: {

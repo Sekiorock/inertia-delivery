@@ -248,3 +248,9 @@ body.playing #btn-sound {
   transform: rotate(45deg);
 }
 .card-ship canvas { display: block; }
+
+/* ---- 宇宙の背景に合わせて、上部の数値を白い文字にする ---- */
+.hud-item { background: rgba(7, 12, 26, 0.55); border-left-color: rgba(255, 255, 255, 0.5); }
+.hud-label { color: rgba(255, 255, 255, 0.7); }
+.hud-value { color: #FFFFFF; }
+#remain { color: rgba(255, 255, 255, 0.8); }
