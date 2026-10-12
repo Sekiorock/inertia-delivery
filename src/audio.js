@@ -17,9 +17,54 @@ window.ID = window.ID || {};
     master.connect(ac.destination);
     return true;
   }
+  // iPhoneの消音スイッチがオンでも鳴るように、音の種類を「再生」にする。
+  // iOS 17以降は audioSession で指定できる。それより古いiOSでは、無音の音声を
+  // 流し続けることで同じ状態にする（よく使われる方法）。
+  var keepAlive = null;
+  function silentWav() {
+    var n = 4000, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+    function str(o, s) { for (var i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); }
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+    str(36, 'data'); v.setUint32(40, n, true);
+    for (var i = 0; i < n; i++) b[44 + i] = 128;
+    var s = ''; for (i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(s);
+  }
+  function isIOS() {
+    return /iP(hone|ad|od)/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function playbackMode() {
+    try {
+      if (navigator.audioSession) { navigator.audioSession.type = 'playback'; return; }
+    } catch (e) {}
+    if (!isIOS() || !enabled) return;
+    try {
+      if (!keepAlive) {
+        keepAlive = document.createElement('audio');
+        keepAlive.src = silentWav(); keepAlive.loop = true;
+        keepAlive.setAttribute('playsinline', ''); keepAlive.setAttribute('x-webkit-airplay', 'deny');
+      }
+      if (keepAlive.paused) { var p = keepAlive.play(); if (p && p.catch) p.catch(function () {}); }
+    } catch (e) {}
+  }
+
+  var primed = false;
   function unlock() {
     if (!ensure()) return;
-    if (ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+    playbackMode();
+    if (ac.state !== 'running') { try { var p = ac.resume(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
+    if (!primed) {
+      // 画面に触れた瞬間に無音を1回鳴らすと、iPhoneでも音が出せる状態になる
+      try {
+        var src = ac.createBufferSource();
+        src.buffer = ac.createBuffer(1, 1, 22050);
+        src.connect(ac.destination); src.start(0);
+        primed = true;
+      } catch (e) {}
+    }
   }
   function init() {
     ['pointerdown', 'touchend', 'click', 'keydown'].forEach(function (ev) {
@@ -28,10 +73,12 @@ window.ID = window.ID || {};
   }
   function setEnabled(v) {
     enabled = v;
+    if (keepAlive && !v) keepAlive.pause();
     if (ac) master.gain.setTargetAtTime(v ? ID.config.volume : 0, ac.currentTime, 0.02);
   }
   // 画面が隠れたら止め、戻ったら再開する
   function setSuspended(v) {
+    if (keepAlive) { try { if (v) keepAlive.pause(); } catch (e) {} }
     if (!ac) return;
     try { if (v) ac.suspend(); else ac.resume(); } catch (e) {}
   }
@@ -71,7 +118,8 @@ window.ID = window.ID || {};
   }
 
   function play(name, n) {
-    if (!enabled || !ensure() || ac.state !== 'running') return;
+    if (!enabled || !ensure()) return;
+    if (ac.state !== 'running') { try { ac.resume(); } catch (e) {} return; }
     var i;
     switch (name) {
       case 'button':    // 短く高い「ピッ」
@@ -138,5 +186,11 @@ window.ID = window.ID || {};
     thr.ng.gain.setTargetAtTime(on ? 0.03 + 0.12 * level : 0, t, 0.03);
   }
 
-  ID.audio = { init: init, play: play, thrust: thrust, setEnabled: setEnabled, setSuspended: setSuspended };
+  // 動作確認用：今の音の状態
+  function status() {
+    return { context: ac ? ac.state : 'none', session: navigator.audioSession ? navigator.audioSession.type : 'none',
+             keepAlive: keepAlive ? (keepAlive.paused ? 'paused' : 'playing') : 'none', enabled: enabled };
+  }
+
+  ID.audio = { init: init, play: play, thrust: thrust, setEnabled: setEnabled, setSuspended: setSuspended, status: status };
 })();

@@ -2,7 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.5.0',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.5.1',        // 画面の左下に小さく表示する（更新の確認用）
   publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // QRコードの画面に出すURL
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
