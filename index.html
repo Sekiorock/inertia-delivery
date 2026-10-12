@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1B2A49">
 <title>慣性デリバリー</title>
-<link rel="stylesheet" href="style.css?v=0.4.1">
+<link rel="stylesheet" href="style.css?v=0.5.0">
 </head>
 <body>
 <div id="frame">
@@ -28,6 +28,19 @@
   <div id="title" class="screen" hidden>
     <div id="title-name"></div>
     <button id="btn-begin" class="btn primary" type="button"></button>
+    <div id="title-sub">
+      <button id="btn-lang" class="btn" type="button"></button>
+      <button id="btn-qr" class="btn" type="button"></button>
+    </div>
+  </div>
+
+  <!-- QRコード（URLの最後に ?qr=1 を付けると最初に開く） -->
+  <div id="qr" class="screen" hidden>
+    <div id="qr-name"></div>
+    <div id="qr-title"></div>
+    <img id="qr-img" src="src/qr.svg?v=0.5.0" alt="QR">
+    <div id="qr-url"></div>
+    <button id="btn-qr-back" class="btn primary" type="button"></button>
   </div>
 
   <!-- 機体選択 -->
@@ -91,13 +104,13 @@
   </div>
 </div>
 
-<script src="src/config.js?v=0.4.1"></script>
-<script src="src/texts.js?v=0.4.1"></script>
-<script src="src/stages.js?v=0.4.1"></script>
-<script src="src/physics.js?v=0.4.1"></script>
-<script src="src/input.js?v=0.4.1"></script>
-<script src="src/render.js?v=0.4.1"></script>
-<script src="src/audio.js?v=0.4.1"></script>
-<script src="src/main.js?v=0.4.1"></script>
+<script src="src/config.js?v=0.5.0"></script>
+<script src="src/texts.js?v=0.5.0"></script>
+<script src="src/stages.js?v=0.5.0"></script>
+<script src="src/physics.js?v=0.5.0"></script>
+<script src="src/input.js?v=0.5.0"></script>
+<script src="src/render.js?v=0.5.0"></script>
+<script src="src/audio.js?v=0.5.0"></script>
+<script src="src/main.js?v=0.5.0"></script>
 </body>
 </html>

@@ -1,7 +1,26 @@
-// 画面の文言（日本語のみ）。直すときはこのファイルだけ書き換える。
+// 画面の文言（日本語と英語）。直すときはこのファイルだけ書き換える。
+// 日本語は ja、英語は en の中にある。同じ名前の項目が、それぞれの言語の文になる。
 window.ID = window.ID || {};
 
-ID.texts = {
+ID.textsAll = {};
+
+ID.textsAll.ja = {
+  lang: 'ja',
+  langButton: 'English',          // 言語を切り替えるボタン（切り替え先の言語名を出す）
+  qrButton: 'QRコード',
+  qrTitle: 'スマホのカメラで読み取ってください',
+  qrBack: 'ゲームへ',
+  pauseLabel: '一時停止',
+  yenPrefix: '',                  // 金額の前に付ける文字（英語では ¥）
+  sep: '　／　',
+  quoteOpen: '「', quoteClose: '」',
+  parenOpen: '（', parenClose: '）',
+  stageNames: {
+    stage0: '研修', stage1: 'まっすぐ配達', stage2: '曲がり角',
+    stage3: '精密ドッキング', stage4: '動くステーション'
+  },
+  shipNames: { shizuka: 'しずか', takeshi: 'たけし' },
+  shipTags: { shizuka: '小回りが利く精密派', takeshi: 'パワーで押し切る安定派' },
   hud: {
     speed: '速さ',
     accel: '加速度',
@@ -75,3 +94,103 @@ ID.texts = {
   resultCost: '燃料代',
   resultOffset: '中心からのずれ'
 };
+
+ID.textsAll.en = {
+  lang: 'en',
+  langButton: '日本語',
+  qrButton: 'QR code',
+  qrTitle: 'Scan with your phone camera',
+  qrBack: 'Go to game',
+  pauseLabel: 'Pause',
+  yenPrefix: '¥',
+  sep: '  /  ',
+  quoteOpen: '"', quoteClose: '"',
+  parenOpen: ' (', parenClose: ')',
+  stageNames: {
+    stage0: 'Training', stage1: 'Straight Delivery', stage2: 'The Corner',
+    stage3: 'Precision Docking', stage4: 'Moving Station'
+  },
+  shipNames: { shizuka: 'Shizuka', takeshi: 'Takeshi' },
+  shipTags: { shizuka: 'Nimble and precise', takeshi: 'Steady and powerful' },
+  hud: {
+    speed: 'Speed',
+    accel: 'Acceleration',
+    thrust: 'Thrust',
+    time: 'Time',
+    fuel: 'Fuel used',
+    cost: 'Fuel cost'
+  },
+  none: '—',
+  remain: 'Distance to dock: ',
+  power: 'Power',
+  request: 'Request',
+  basePay: 'Base pay',
+  targetTime: 'Target time',
+  chooseShip: 'Choose your ship',
+  specMass: 'Mass',
+  specAccel: 'Max accel.',
+  specFuel: 'Fuel cost*',
+  specFuelNote: '* To speed up to 2 m/s and then stop',
+  specControl: 'Power',
+  controlSmooth: 'Smooth',
+  controlSteps: '3 steps',
+  specStable: 'Stability',
+  stableJitter: 'Slight drift',
+  stableNone: 'No drift',
+  precisionBonus: 'Precision bonus',
+  speedBonus: 'Speed bonus',
+  gross: 'Gross pay',
+  fuelSlip: 'Fuel cost',
+  net: 'Take-home pay',
+  deficit: 'Delivered at a loss',
+  wallet: 'Savings',
+  changeShip: 'Change ship',
+  skipHint: 'Tap to skip',
+  yen: '',
+  controlHint: 'Drag here to fire the engine',
+  controlHint2: 'Drag = accelerate that way / Release = engine off',
+  success: 'Delivered!',
+  title: 'Inertia Delivery',
+  soundOn: 'Mute',
+  soundOff: 'Unmute',
+  begin: 'Start',
+  stageSelect: 'Stage select',
+  stageList: 'Choose a stage',
+  locked: 'Clear the previous stage to unlock',
+  best: 'Best',
+  noRecord: 'Not delivered yet',
+  depart: 'Depart',
+  back: 'Back',
+  nextStage: 'Next stage',
+  newBest: 'New best!',
+  broken: 'Cargo broken',
+  brokenBody1: 'Speed into the wall: ',
+  brokenBody2: '(safe limit: ',
+  brokenBody3: ')',
+  stageHooks: {
+    stage0: 'Training first. Drag up, then let go and watch. To stop, drag down.',
+    stage1: 'These parts are urgent. Please do not break them.',
+    stage2: 'Take it around the corner. Settle down before you turn.',
+    stage3: 'The dock is tiny. Bring it in gently.',
+    stage4: 'The station is moving. Match its speed.'
+  },
+  out: 'Out of bounds',
+  outBody: 'You left the stage',
+  retry: 'Try again',
+  paused: 'Paused',
+  resume: 'Resume',
+  restart: 'Restart',
+  resultTime: 'Time',
+  resultFuel: 'Fuel used',
+  resultCost: 'Fuel cost',
+  resultOffset: 'Distance from center'
+};
+
+// 今の言語の文言。ID.setLanguage('ja') か ID.setLanguage('en') で入れ替える。
+ID.texts = {};
+ID.setLanguage = function (lang) {
+  var src = ID.textsAll[lang] || ID.textsAll.ja, k;
+  for (k in ID.texts) delete ID.texts[k];
+  for (k in src) ID.texts[k] = src[k];
+};
+ID.setLanguage('ja');

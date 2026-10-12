@@ -9,12 +9,14 @@ window.ID = window.ID || {};
   var DT = 1 / cfg.physicsHz;
 
   function $(id) { return document.getElementById(id); }
-  function yen(n) { return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('ja-JP') + T.yen; }
+  function yen(n) { return (n < 0 ? '−' : '') + T.yenPrefix + Math.abs(n).toLocaleString('ja-JP') + T.yen; }
+  function stageName(s) { return T.stageNames[s.id] || s.name; }
+  function shipName(s) { return T.shipNames[s.id] || s.name; }
   function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
 
   // ---------- 保存するデータ ----------
   // 解放したステージ、ステージごとの最高手取り・星の数、所持金、選んだ機体、音のオン・オフ
-  var save = { unlocked: 0, best: {}, wallet: 0, ship: cfg.defaultShip, sound: true };
+  var save = { unlocked: 0, best: {}, wallet: 0, ship: cfg.defaultShip, sound: true, lang: 'ja' };
   function loadSave() {
     try {
       var d = JSON.parse(localStorage.getItem(cfg.saveKey) || 'null');
@@ -24,6 +26,7 @@ window.ID = window.ID || {};
         if (typeof d.wallet === 'number') save.wallet = d.wallet;
         if (cfg.ships[d.ship]) save.ship = d.ship;
         if (typeof d.sound === 'boolean') save.sound = d.sound;
+        if (ID.textsAll[d.lang]) save.lang = d.lang;
       }
     } catch (e) {}   // 保存に失敗しても遊べるようにする
   }
@@ -31,6 +34,7 @@ window.ID = window.ID || {};
     try { localStorage.setItem(cfg.saveKey, JSON.stringify(save)); } catch (e) {}
   }
   loadSave();
+  ID.setLanguage(save.lang);
   // 動作確認用：URLの最後に ?unlock=1 を付けると全ステージを遊べる（保存はしない）
   var unlockAll = /[?&]unlock=1/.test(location.search);
   function isUnlocked(i) { return unlockAll || i <= save.unlocked; }
@@ -44,7 +48,7 @@ window.ID = window.ID || {};
   var dockedAt = 0, dockTimer = 0;
 
   var canvas = $('game');
-  var screens = ['title', 'select', 'stages', 'brief', 'result'];
+  var screens = ['title', 'qr', 'select', 'stages', 'brief', 'result'];
   function show(name) {
     mode = name;
     screens.forEach(function (s) { $(s).hidden = (s !== name); });
@@ -95,8 +99,8 @@ window.ID = window.ID || {};
       var c2 = cv.getContext('2d'); c2.scale(r, r);
       ID.render.drawShip(c2, s.id, px / 2, px / 2, s.size * 24);
       pic.appendChild(cv);
-      add('card-name', s.name);
-      add('card-tag', s.tagline);
+      add('card-name', shipName(s));
+      add('card-tag', T.shipTags[s.id] || s.tagline);
       function spec(label, value, ratio) {
         var d = add('spec');
         var l = document.createElement('span'); l.textContent = label;
@@ -109,7 +113,7 @@ window.ID = window.ID || {};
       spec(T.specFuel, yen(Math.round(est(s))), est(s) / maxFuel);
       spec(T.specControl, s.steps ? T.controlSteps : T.controlSmooth, null);
       spec(T.specStable, s.jitterDeg ? T.stableJitter : T.stableNone, null);
-      add('card-go', s.name);
+      add('card-go', shipName(s));
       card.addEventListener('click', function () {
         ship = s; save.ship = s.id; writeSave();
         showStages();
@@ -122,7 +126,7 @@ window.ID = window.ID || {};
   // ---------- ステージ選択 ----------
   function showStages() {
     $('stages-title').textContent = T.stageList;
-    $('stages-wallet').textContent = ship.name + '　／　' + T.wallet + ' ' + yen(save.wallet);
+    $('stages-wallet').textContent = shipName(ship) + T.sep + T.wallet + ' ' + yen(save.wallet);
     var list = $('stages-list'); list.innerHTML = '';
     stages.forEach(function (s, i) {
       var open = isUnlocked(i), best = save.best[s.id];
@@ -130,7 +134,7 @@ window.ID = window.ID || {};
       el.type = 'button'; el.className = 'stage-item' + (open ? '' : ' locked'); el.id = 'stage-item-' + i;
       function add(cls, text) { var d = document.createElement('div'); d.className = cls; d.textContent = text || ''; el.appendChild(d); return d; }
       add('stage-no', String(i));
-      add('stage-name', s.name);
+      add('stage-name', stageName(s));
       var stars = add('stage-stars');
       for (var k = 0; k < 3; k++) {
         var sp = document.createElement('i'); sp.textContent = '★';
@@ -150,8 +154,8 @@ window.ID = window.ID || {};
     stageIndex = i; stage = stages[i];
     st = P.createState(stage, ship);
     $('brief-label').textContent = T.request;
-    $('brief-name').textContent = stage.name;
-    $('brief-hook').textContent = '「' + (T.stageHooks[stage.id] || '') + '」';
+    $('brief-name').textContent = stageName(stage);
+    $('brief-hook').textContent = T.quoteOpen + (T.stageHooks[stage.id] || '') + T.quoteClose;
     $('brief-base-l').textContent = T.basePay; $('brief-base').textContent = yen(stage.basePay);
     $('brief-time-l').textContent = T.targetTime; $('brief-time').textContent = stage.targetTime + ' s';
     show('brief');
@@ -219,14 +223,14 @@ window.ID = window.ID || {};
     row('row-speed', T.speedBonus, pay.speed);
     $('pay-label').textContent = T.gross; amount.textContent = yen(0);
     box.classList.remove('final'); box.classList.add('hide');
-    $('slip-label').textContent = T.fuelSlip + '（' + st.fuel.toFixed(2) + ' kg）';
+    $('slip-label').textContent = T.fuelSlip + T.parenOpen + st.fuel.toFixed(2) + ' kg' + T.parenClose;
     $('slip-amount').textContent = '−' + yen(pay.fuelCost);
     slip.classList.remove('in');
     var stars = $('stars'); stars.innerHTML = '';
     for (var i = 0; i < 3; i++) { var sp = document.createElement('span'); sp.textContent = '★'; stars.appendChild(sp); }
     stars.classList.add('hide');
     $('wallet').classList.add('hide');
-    $('wallet').textContent = (isBest && old ? T.newBest + '　／　' : '') + T.wallet + ' ' + yen(save.wallet);
+    $('wallet').textContent = (isBest && old ? T.newBest + T.sep : '') + T.wallet + ' ' + yen(save.wallet);
     $('btn-next').hidden = !hasNext;
     $('btn-again').className = 'btn' + (hasNext ? '' : ' primary');
     $('result-buttons').classList.add('hide');
@@ -310,21 +314,45 @@ window.ID = window.ID || {};
     requestAnimationFrame(frame);
   }
 
+  // ---------- 文言（言語を切り替えたら付け直す） ----------
+  function applyTexts() {
+    document.documentElement.lang = T.lang;
+    document.title = T.title;
+    $('title-name').textContent = T.title;
+    $('btn-begin').textContent = T.begin;
+    $('btn-lang').textContent = T.langButton;
+    $('btn-qr').textContent = T.qrButton;
+    $('qr-name').textContent = T.title;
+    $('qr-title').textContent = T.qrTitle;
+    $('qr-url').textContent = cfg.publicUrl;
+    $('btn-qr-back').textContent = T.qrBack;
+    $('btn-stages-back').textContent = T.changeShip;
+    $('btn-depart').textContent = T.depart;
+    $('btn-brief-back').textContent = T.back;
+    $('btn-next').textContent = T.nextStage;
+    $('btn-again').textContent = T.retry;
+    $('btn-to-stages').textContent = T.stageSelect;
+    $('btn-pause').setAttribute('aria-label', T.pauseLabel);
+    ID.render.setTexts();
+    buildSelect();
+    updateSound();
+  }
+
   // ---------- ボタン ----------
-  $('title-name').textContent = T.title;
-  $('btn-begin').textContent = T.begin;
   $('btn-begin').addEventListener('click', showSelect);
-  $('btn-stages-back').textContent = T.changeShip;
+  $('btn-lang').addEventListener('click', function () {   // 日本語と英語の切り替え
+    save.lang = (T.lang === 'ja') ? 'en' : 'ja';
+    writeSave();
+    ID.setLanguage(save.lang);
+    applyTexts();
+  });
+  $('btn-qr').addEventListener('click', function () { show('qr'); });
+  $('btn-qr-back').addEventListener('click', showTitle);
   $('btn-stages-back').addEventListener('click', showSelect);
-  $('btn-depart').textContent = T.depart;
   $('btn-depart').addEventListener('click', start);
-  $('btn-brief-back').textContent = T.back;
   $('btn-brief-back').addEventListener('click', showStages);
-  $('btn-next').textContent = T.nextStage;
   $('btn-next').addEventListener('click', function () { showBrief(stageIndex + 1); });
-  $('btn-again').textContent = T.retry;
   $('btn-again').addEventListener('click', start);
-  $('btn-to-stages').textContent = T.stageSelect;
   $('btn-to-stages').addEventListener('click', showStages);
   $('btn-pause').addEventListener('click', pause);
   $('result').addEventListener('pointerdown', function () { fast = true; });   // タップで早送り
@@ -350,9 +378,9 @@ window.ID = window.ID || {};
   ID.input.init(canvas, cfg);
   ID.render.init(canvas, cfg, T);
   ID.audio.init();
-  updateSound();
-  buildSelect();
-  showTitle();
+  applyTexts();
+  // URLの最後に ?qr=1 を付けると、最初にQRコードの画面を出す（生徒に読み取ってもらう用）
+  if (/[?&]qr=1/.test(location.search)) show('qr'); else showTitle();
   lastTime = performance.now();
   requestAnimationFrame(frame);
 

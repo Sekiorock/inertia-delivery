@@ -191,9 +191,9 @@ html, body {
 .btn[hidden] { display: none; }
 .heading { margin: 4px 0 12px; font-size: 17px; font-weight: 700; text-align: center; }
 
-#title { justify-content: center; align-items: center; gap: 48px; }
-#title-name { font-size: 38px; font-weight: 700; letter-spacing: 2px; }
-#title .btn { width: 70%; font-size: 20px; padding: 14px; }
+#title { justify-content: center; align-items: center; gap: 40px; }
+#title-name { font-size: clamp(28px, 9.5vw, 38px); font-weight: 700; letter-spacing: 2px; text-align: center; }
+#title > .btn { width: 70%; font-size: 20px; padding: 14px; }
 
 #stages-wallet { text-align: center; font-size: 14px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
 #stages-list { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
@@ -254,3 +254,13 @@ body.playing #btn-sound {
 .hud-label { color: rgba(255, 255, 255, 0.7); }
 .hud-value { color: #FFFFFF; }
 #remain { color: rgba(255, 255, 255, 0.8); }
+
+/* ---- 言語の切り替えとQRコード ---- */
+#title-sub { display: flex; gap: 10px; width: 70%; }
+#title-sub .btn { font-size: 14px; padding: 9px 4px; margin-top: 0; }
+#qr { justify-content: center; align-items: center; gap: 14px; }
+#qr-name { font-size: 26px; font-weight: 700; }
+#qr-title { font-size: 15px; }
+#qr-img { width: min(82%, 46vh); height: auto; border: 2px solid var(--navy); border-radius: 12px; }
+#qr-url { font-size: 12px; word-break: break-all; text-align: center; color: rgba(27, 42, 73, 0.6); -webkit-user-select: text; user-select: text; }
+#qr .btn { width: 70%; }

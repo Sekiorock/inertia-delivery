@@ -12,9 +12,9 @@ window.ID = window.ID || {};
   function init(canvasEl, config, texts) {
     canvas = canvasEl; ctx = canvas.getContext('2d'); cfg = config; T = texts;
     ['speed', 'accel', 'thrust', 'time', 'fuel', 'cost'].forEach(function (k) {
-      document.getElementById('lbl-' + k).textContent = T.hud[k];
       el[k] = document.getElementById('val-' + k);
     });
+    setTexts();
     el.remain = document.getElementById('remain');
     document.getElementById('version').textContent = 'v' + cfg.version;
     resize();
@@ -27,6 +27,14 @@ window.ID = window.ID || {};
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     hudDirty = true;   // 数値の欄の高さは、次の描画のあとで測り直す
+  }
+
+  // 言語を切り替えたときに、数値の見出しを付け直す
+  function setTexts() {
+    ['speed', 'accel', 'thrust', 'time', 'fuel', 'cost'].forEach(function (k) {
+      document.getElementById('lbl-' + k).textContent = T.hud[k];
+    });
+    hudDirty = true;
   }
 
   function reset() { particles.length = 0; emitRest = 0; }
@@ -393,7 +401,7 @@ window.ID = window.ID || {};
     el.thrust.textContent = st.thrust > 0 ? Math.round(st.thrust) + ' N' : T.none;
     el.time.textContent = st.t.toFixed(1) + ' s';
     el.fuel.textContent = st.fuel.toFixed(2) + ' kg';
-    el.cost.textContent = Math.round(st.fuel * cfg.fuelPrice).toLocaleString('ja-JP') + '円';
+    el.cost.textContent = T.yenPrefix + Math.round(st.fuel * cfg.fuelPrice).toLocaleString('ja-JP') + T.yen;
     el.remain.textContent = T.remain + dist.toFixed(1) + ' m';
     if (hudDirty) {   // 数値が入った状態で、欄の下端の位置を測る
       hudBottom = document.getElementById('hud').getBoundingClientRect().bottom - canvas.getBoundingClientRect().top;
@@ -401,5 +409,5 @@ window.ID = window.ID || {};
     }
   }
 
-  ID.render = { init: init, resize: resize, reset: reset, draw: draw, drawShip: drawShip };
+  ID.render = { init: init, resize: resize, setTexts: setTexts, reset: reset, draw: draw, drawShip: drawShip };
 })();
