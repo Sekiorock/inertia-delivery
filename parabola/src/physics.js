@@ -98,7 +98,7 @@ window.PB = window.PB || {};
   }
 
   // 給料：手取り = 基本給 + 精度ボーナス + 予測ボーナス − エネルギー代
-  function calcPay(st, stage, cfg, mode, pinX) {
+  function calcPay(st, stage, cfg, mode, pinX, quizBonus) {
     var b = stage.basket;
     var precision = Math.round(cfg.precisionBonusMax * Math.max(0, 1 - Math.abs(st.x - b.x) / (b.w / 2)));
     var predict = 0, err = null;
@@ -108,10 +108,11 @@ window.PB = window.PB || {};
     }
     var energy = 0.5 * cfg.parcelMass * st.v0 * st.v0;     // 打ち出しのエネルギー ½mv₀² [J]
     var cost = Math.round(energy * cfg.energyPrice);
-    var gross = stage.basePay + precision + predict;
+    var quiz = quizBonus || 0;
+    var gross = stage.basePay + precision + predict + quiz;
     var net = gross - cost;
     var stars = net >= stage.basePay * cfg.star3Ratio ? 3 : (net >= stage.basePay * cfg.star2Ratio ? 2 : 1);
-    return { base: stage.basePay, precision: precision, predict: predict, err: err,
+    return { base: stage.basePay, precision: precision, predict: predict, quiz: quiz, err: err,
              energy: energy, cost: cost, gross: gross, net: net, stars: stars };
   }
 

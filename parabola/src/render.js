@@ -257,6 +257,31 @@ window.PB = window.PB || {};
       label(T.landLabel + ' ' + rel(st.x).toFixed(2) + ' m', sx(st.x), L.gy - R * 2 - 18, world.theme === 'space' ? NV : WH, th.fg);
     }
 
+    // 影：床（x の影）と左の壁（y の影）。水平は等速、鉛直は投げ上げの動きになる
+    var showArrows = view.arrows !== false;
+    if (view.shadow && (flying || landed)) {
+      var wx = Math.max(8, sx(stage.launch.x) - 18), gyS = L.gy - 4;
+      ctx.strokeStyle = th.fgA + '0.3)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(wx, L.gy); ctx.lineTo(wx, hudBottom + 30); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = th.accent;
+      st.trail.forEach(function (p) {
+        ctx.beginPath(); ctx.arc(sx(p.x), gyS, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wx, sy(p.y), 2.5, 0, Math.PI * 2); ctx.fill();
+      });
+      var shx = sx(st.x), shy = sy(st.y);
+      ctx.strokeStyle = th.fg; ctx.lineWidth = 1.5;
+      ctx.fillRect(shx - 5, gyS - 5, 10, 10); ctx.strokeRect(shx - 5, gyS - 5, 10, 10);
+      ctx.fillRect(wx - 5, shy - 5, 10, 10); ctx.strokeRect(wx - 5, shy - 5, 10, 10);
+      ctx.fillStyle = th.fgA + '0.6)'; ctx.font = '600 10px ' + FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText(T.shadowY, wx + 4, hudBottom + 30);
+      ctx.textAlign = 'right'; ctx.fillText(T.shadowX + '（床）', W - 8, gyS - 8);
+      if (flying && showArrows) {   // 影の上の速度の成分
+        var k2 = cfg.arrowFullPx / cfg.vMax;
+        arrow(shx, gyS - 12, shx + st.vx * k2, gyS - 12, true, th.accent);
+        arrow(wx + 12, shy, wx + 12, shy - st.vy * k2, true, th.accent);
+      }
+    }
+
     // 狙いの矢印と角度（投げる前）
     if (!flying && !landed) {
       var al = view.aim.v / cfg.vMax * cfg.arrowFullPx, rad = view.aim.theta * Math.PI / 180;
@@ -273,7 +298,11 @@ window.PB = window.PB || {};
       var rot = landed ? 0 : st.t * 6;
       var kx = sx(st.x), ky = sy(st.y) - (landed ? R * 0.9 : 0);
       drawKuri(ctx, kx, ky, R, rot, face);
-      if (flying) {
+      if (view.freeze) {   // 途中停止クイズ：止まっていることを示す輪
+        ctx.strokeStyle = th.accent; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(kx, ky, R + 8 + 3 * Math.sin(performance.now() / 150), 0, Math.PI * 2); ctx.stroke();
+      }
+      if (flying && showArrows) {
         var v = Math.hypot(st.vx, st.vy);
         if (v > 0.05) {
           var vl = v / cfg.vMax * cfg.arrowFullPx;

@@ -1,6 +1,7 @@
 // 起動、画面の切り替え、ゲームの進行
 // タイトル → ステージ選択 → 依頼 → 狙う → 飛ぶ → 結果
 // 各ステージは「体感」（予測線あり）→「予測」（着地点を予測してから投げる）の順に解く。
+// 体感の段階では、飛んでいる途中で時間を止めて、速度や加速度の向きを問う（途中停止クイズ）。
 window.PB = window.PB || {};
 
 (function () {
@@ -16,7 +17,7 @@ window.PB = window.PB || {};
   stages.forEach(function (s, i) { order.push({ i: i, mode: 'feel' }); order.push({ i: i, mode: 'predict' }); });
 
   // ---------- 保存（端末のブラウザの中だけ） ----------
-  var save = { unlocked: 0, best: {}, wallet: 0, sound: true };
+  var save = { unlocked: 0, best: {}, wallet: 0, sound: true, shadow: true, quiz: {} };
   try {
     var d0 = JSON.parse(localStorage.getItem(cfg.saveKey) || 'null');
     if (d0 && typeof d0 === 'object') {
@@ -24,6 +25,8 @@ window.PB = window.PB || {};
       if (d0.best && typeof d0.best === 'object') save.best = d0.best;
       if (typeof d0.wallet === 'number') save.wallet = d0.wallet;
       if (typeof d0.sound === 'boolean') save.sound = d0.sound;
+      if (typeof d0.shadow === 'boolean') save.shadow = d0.shadow;
+      if (d0.quiz && typeof d0.quiz === 'object') save.quiz = d0.quiz;
     }
   } catch (e) {}
   function writeSave() { try { localStorage.setItem(cfg.saveKey, JSON.stringify(save)); } catch (e) {} }
@@ -39,6 +42,8 @@ window.PB = window.PB || {};
   var pin = null, pred = null;
   var phase = 'title';                 // 'title' | 'qr' | 'stages' | 'brief' | 'aim' | 'flying' | 'landed' | 'result'
   var paused = false, acc = 0, lastTime = 0, hitAt = 0, timer = 0;
+  // 途中停止クイズ
+  var quizPending = [], quizActive = false, quizEarned = 0, arrowsHidden = false, vy0 = 0, quizAt = null;
 
   var screens = ['title', 'qr', 'stages', 'brief', 'result'];
   function show(name) {
@@ -47,6 +52,7 @@ window.PB = window.PB || {};
     $('overlay').hidden = true;
     document.body.classList.toggle('playing', ['aim', 'flying', 'landed'].indexOf(name) >= 0);
     clearTimeout(timer); stopAnim();
+    if (['flying', 'landed'].indexOf(name) < 0) { $('quiz').hidden = true; quizActive = false; }
   }
   function showOverlay(title, body, buttons) {
     $('overlay-title').textContent = title; $('overlay-body').textContent = body;
@@ -129,6 +135,14 @@ window.PB = window.PB || {};
     if (phase !== 'aim' || $('btn-throw').disabled) return;
     P.launch(st, stage, aim.v, aim.theta);
     acc = 0; show('flying'); updateAim();
+    // まだ正解していないクイズだけを出す（体感の段階のみ）
+    quizPending = [];
+    if (mode === 'feel' && stage.quiz) stage.quiz.forEach(function (q, i) {
+      if (!save.quiz[stage.id + ':' + i]) quizPending.push({ q: q, key: stage.id + ':' + i });
+    });
+    quizEarned = 0; quizActive = false; quizAt = null;
+    arrowsHidden = quizPending.length > 0;   // 答える前に矢印で答えが分からないように隠す
+    vy0 = st.vy;
     PB.audio.play('launch'); vibrate(15);
   }
 
@@ -140,7 +154,7 @@ window.PB = window.PB || {};
     if (st.result === 'hit') {
       hitAt = performance.now();
       PB.audio.play('dock'); vibrate([30, 40, 30]);
-      var pay = P.calcPay(st, stage, cfg, mode, pin);
+      var pay = P.calcPay(st, stage, cfg, mode, pin, quizEarned);
       timer = setTimeout(function () { showResult(pay); }, 1300);
     } else {
       PB.audio.play('miss');
@@ -176,6 +190,7 @@ window.PB = window.PB || {};
     row('row-base', T.basePay, pay.base, true);
     row('row-precision', T.precisionBonus, pay.precision, true);
     row('row-predict', T.predictBonus, pay.predict, mode === 'predict');
+    row('row-quiz', T.quizBonus, pay.quiz, pay.quiz > 0);
     $('pay-label').textContent = T.gross; amount.textContent = yen(0);
     box.classList.remove('final'); box.classList.add('hide');
     $('slip-label').textContent = T.energySlip + '（' + Math.round(pay.energy) + ' J）';
@@ -207,7 +222,7 @@ window.PB = window.PB || {};
     }
     function run() { if (my !== animId) return; var f = queue.shift(); if (f) f(run); }
     wait(400);
-    ['row-base', 'row-precision', 'row-predict'].forEach(function (id) {
+    ['row-base', 'row-precision', 'row-predict', 'row-quiz'].forEach(function (id) {
       act(function () { $(id).classList.remove('hide'); }); wait(220);
     });
     act(function () { box.classList.remove('hide'); });
@@ -234,17 +249,77 @@ window.PB = window.PB || {};
     run();
   }
 
+  // ---------- 途中停止クイズ ----------
+  // 止める瞬間：rise は上向きの速度が半分になったとき、apex は最高点、descent は下向きの速度が最初の上向きの半分になったとき
+  function triggered(at, pvy, vy) {
+    if (at === 'apex') return pvy > 0 && vy <= 0;
+    if (at === 'rise') return pvy > vy0 / 2 && vy <= vy0 / 2;
+    if (at === 'descent') return pvy > -vy0 / 2 && vy <= -vy0 / 2;
+    return false;
+  }
+  function checkQuiz(pvy) {
+    if (!quizPending.length || !st.flying) return;
+    if (triggered(quizPending[0].q.at, pvy, st.vy)) { quizAt = quizPending[0].q.at; openQuiz(); }
+  }
+  var DIRS = [['nw', '↖'], ['n', '↑'], ['ne', '↗'], ['w', '←'], ['zero', null], ['e', '→'], ['sw', '↙'], ['s', '↓'], ['se', '↘']];
+  function openQuiz() {
+    var item = quizPending[0], q = item.q;
+    quizActive = true;
+    PB.audio.play('pin'); vibrate(20);
+    $('quiz-title').textContent = T.quizTitle;
+    $('quiz-q').textContent = T.quizQ[q.ask];
+    $('quiz-result').textContent = '';
+    $('quiz-explain').textContent = fill(T.quizBonusNote, { b: cfg.quizBonus.toLocaleString('ja-JP') });
+    $('quiz-go').hidden = true;
+    var grid = $('quiz-grid'); grid.innerHTML = '';
+    var opts = q.ask === 'accMag' ? q.options.map(function (o) { return [o, o + ' m/s²']; })
+                                  : DIRS.map(function (d) { return [d[0], d[1] || T.quizZero]; });
+    grid.className = q.ask === 'accMag' ? 'opts' : '';
+    opts.forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = o[1]; b.dataset.id = o[0];
+      b.addEventListener('click', function () { answer(o[0]); });
+      grid.appendChild(b);
+    });
+    $('quiz').hidden = false;
+  }
+  function answer(id) {
+    var item = quizPending[0], q = item.q, ok = id === q.answer;
+    Array.prototype.forEach.call($('quiz-grid').children, function (b) {
+      b.disabled = true;
+      if (b.dataset.id === q.answer) b.className = 'right';
+      else if (b.dataset.id === id) b.className = 'wrong';
+    });
+    $('quiz-result').textContent = ok ? T.quizRight : T.quizWrong;
+    $('quiz-explain').textContent = T.quizExplain[q.explain];
+    if (ok) { save.quiz[item.key] = true; writeSave(); quizEarned += cfg.quizBonus; PB.audio.play('star', 2); }
+    else PB.audio.play('miss');
+    quizPending.shift();
+    // 同じ瞬間の問いが残っていなければ、本当の矢印を見せる
+    if (!quizPending.length || quizPending[0].q.at !== quizAt) arrowsHidden = false;
+    $('quiz-go').textContent = T.quizGo; $('quiz-go').hidden = false;
+  }
+  $('quiz-go').addEventListener('click', function () {
+    if (quizPending.length && quizPending[0].q.at === quizAt) { openQuiz(); return; }   // 同じ瞬間の次の問い
+    $('quiz').hidden = true; quizActive = false; arrowsHidden = false;
+  });
+
   // ---------- 毎フレーム ----------
   function frame(now) {
     var dt = (now - lastTime) / 1000; lastTime = now;
     if (dt > 0.1) dt = 0.1;
-    if (phase === 'flying' && !paused) {
+    if (phase === 'flying' && !paused && !quizActive) {
       acc += dt;
-      while (acc >= DT && st.flying) { P.step(st, stage, world.g, DT); acc -= DT; }
+      while (acc >= DT && st.flying && !quizActive) {
+        var pvy = st.vy;
+        P.step(st, stage, world.g, DT); acc -= DT;
+        checkQuiz(pvy);
+      }
+      if (quizActive) acc = 0;
       if (!st.flying) landed();
     }
     if (['aim', 'flying', 'landed'].indexOf(phase) >= 0) {
       PB.render.draw({ st: st, stage: stage, world: world, mode: mode, aim: aim, pred: pred, pin: pin, dt: dt,
+                       shadow: save.shadow, arrows: !arrowsHidden, freeze: quizActive,
                        fx: { hit: phase === 'landed' && st.result === 'hit' ? Math.min(1, (now - hitAt) / 1000) : null } });
     }
     requestAnimationFrame(frame);
@@ -281,6 +356,10 @@ window.PB = window.PB || {};
     PB.audio.setEnabled(save.sound);
   }
   $('btn-sound').addEventListener('click', function () { save.sound = !save.sound; writeSave(); updateSound(); });
+  function updateShadow() { $('btn-shadow').classList.toggle('on', save.shadow); }
+  $('btn-shadow').textContent = T.shadowLabel;
+  $('btn-shadow').addEventListener('click', function () { save.shadow = !save.shadow; writeSave(); updateShadow(); });
+  updateShadow();
   document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('button')) PB.audio.play('button'); });
 
   // ---------- 文言とボタン ----------
@@ -318,6 +397,6 @@ window.PB = window.PB || {};
   lastTime = performance.now();
   requestAnimationFrame(frame);
 
-  PB.debug = { st: function () { return st; }, aim: aim, setAim: function (v, t) { aim.v = v; aim.theta = t; updateAim(); },
+  PB.debug = { st: function () { return st; }, quizActive: function () { return quizActive; }, save: function () { return save; }, aim: aim, setAim: function (v, t) { aim.v = v; aim.theta = t; updateAim(); },
                phase: function () { return phase; }, setPin: function (x) { pin = x; updateAim(); } };
 })();
