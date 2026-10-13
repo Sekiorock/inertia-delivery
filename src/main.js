@@ -45,7 +45,7 @@ window.ID = window.ID || {};
   var st = P.createState(stage, ship);
   var paused = false, lastTime = 0, acc = 0, lastStep = -1, lastBounce = 0;
   var mode = 'title';         // 'title' | 'select' | 'stages' | 'brief' | 'play' | 'docked' | 'result'
-  var dockedAt = 0, dockTimer = 0;
+  var dockedAt = 0, dockTimer = 0, crashAt = 0;
 
   var canvas = $('game');
   var screens = ['title', 'qr', 'select', 'stages', 'brief', 'result'];
@@ -186,9 +186,15 @@ window.ID = window.ID || {};
       var pay = P.calcPay(st, stage, cfg);
       dockTimer = setTimeout(function () { if (mode === 'docked') showResult(pay); }, cfg.dockEffectTime * 1000);
     } else if (st.status === 'broken') {
-      ID.audio.play('broken'); vibrate(80);
-      showOverlay(T.broken, T.brokenBody1 + st.hitSpeed.toFixed(1) + ' m/s\n' +
-        T.brokenBody2 + cfg.wallBreakSpeed.toFixed(1) + ' m/s' + T.brokenBody3, retry);
+      // 少し跳ね返って砕け散り、画面が赤く光る演出を見せてから知らせる（音はそのまま）
+      mode = 'crashed'; crashAt = performance.now();
+      ID.input.setEnabled(false);
+      ID.audio.play('broken'); vibrate([60, 40, 90]);
+      dockTimer = setTimeout(function () {
+        if (mode !== 'crashed') return;
+        showOverlay(T.broken, T.brokenBody1 + st.hitSpeed.toFixed(1) + ' m/s\n' +
+          T.brokenBody2 + cfg.wallBreakSpeed.toFixed(1) + ' m/s' + T.brokenBody3, retry);
+      }, cfg.crashEffectTime * 1000);
     } else {
       ID.audio.play('broken');
       showOverlay(T.out, T.outBody, retry);
@@ -306,9 +312,10 @@ window.ID = window.ID || {};
       // 噴射中のうなり音（出力が大きいほど音程と音量が上がる）
       if (st.status === 'playing') ID.audio.thrust(st.thrust > 0 ? st.thrust / ship.maxThrust : 0);
     }
-    if (mode === 'play' || mode === 'docked') {
-      var fx = { dt: paused ? 0 : dt, dock: -1 };
+    if (mode === 'play' || mode === 'docked' || mode === 'crashed') {
+      var fx = { dt: paused ? 0 : dt, dock: -1, crash: null };
       if (mode === 'docked') fx.dock = Math.min(1, (now - dockedAt) / 1000 / cfg.dockEffectTime);
+      if (mode === 'crashed') fx.crash = (now - crashAt) / 1000;
       ID.render.draw(st, stage, ship, ID.input.state, cmd, fx);
     }
     requestAnimationFrame(frame);

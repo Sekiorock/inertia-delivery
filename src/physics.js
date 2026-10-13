@@ -40,15 +40,34 @@ window.ID = window.ID || {};
 
   // 受け取り口の今の位置（ステージ4では動く）
   // bounds があるときは、その範囲を同じ速さで往復する。
+  // wander があるときは、決まった種の乱数で作った波を重ねて、気まぐれに動き回り、
+  // 大きさも変わる（同じ操作なら同じ動きになるので、生徒同士で公平に比べられる）。
   function dockPosition(stage, t) {
-    var d = stage.dock, v = d.velocity, b = d.bounds;
+    var d = stage.dock, v = d.velocity, b = d.bounds, wd = d.wander;
+    if (wd) {
+      if (!wd._p) {
+        var rnd = makeRandom(stage.seed + 77);
+        wd._p = [0, 1, 2, 3, 4].map(function () { return rnd() * Math.PI * 2; });
+      }
+      var p = wd._p, w = wd.w;
+      var x = d.x + wd.xAmp * (0.6 * Math.sin(w[0] * t + p[0]) + 0.4 * Math.sin(w[1] * t + p[1]));
+      var y = d.y + wd.yAmp * (0.6 * Math.sin(w[2] * t + p[2]) + 0.4 * Math.sin(w[3] * t + p[3]));
+      var vx = wd.xAmp * (0.6 * w[0] * Math.cos(w[0] * t + p[0]) + 0.4 * w[1] * Math.cos(w[1] * t + p[1]));
+      var vy = wd.yAmp * (0.6 * w[2] * Math.cos(w[2] * t + p[2]) + 0.4 * w[3] * Math.cos(w[3] * t + p[3]));
+      var r = (wd.rMin + wd.rMax) / 2 + (wd.rMax - wd.rMin) / 2 * Math.sin(wd.rW * t + p[4]);
+      return { x: x, y: y, vx: vx, vy: vy, r: r };
+    }
+    return dockLinear(stage, t);
+  }
+  function dockLinear(stage, t) {
+    var d = stage.dock, v = d.velocity, b = d.bounds, r = d.radius;
     if (b && v.x !== 0) {
       var span = b.xMax - b.xMin, sp = Math.abs(v.x);
       var p = (d.x - b.xMin + sp * t) % (2 * span);
-      if (p <= span) return { x: b.xMin + p, y: d.y, vx: sp, vy: 0 };
-      return { x: b.xMax - (p - span), y: d.y, vx: -sp, vy: 0 };
+      if (p <= span) return { x: b.xMin + p, y: d.y, vx: sp, vy: 0, r: r };
+      return { x: b.xMax - (p - span), y: d.y, vx: -sp, vy: 0, r: r };
     }
-    return { x: d.x + v.x * t, y: d.y + v.y * t, vx: v.x, vy: v.y };
+    return { x: d.x + v.x * t, y: d.y + v.y * t, vx: v.x, vy: v.y, r: r };
   }
 
   // 壁との衝突。機体は一辺 size の四角形として扱う。
@@ -65,10 +84,8 @@ window.ID = window.ID || {};
       else if (outY && !outX) axisX = false;
       else axisX = Math.min(st.x - x0, x1 - st.x) < Math.min(st.y - y0, y1 - st.y);
       var vp = Math.abs(axisX ? st.vx : st.vy);
-      if (vp > cfg.wallBreakSpeed + 1e-9 && !stage.noFail) {
-        st.status = 'broken'; st.hitSpeed = vp;
-        return;
-      }
+      var broke = vp > cfg.wallBreakSpeed + 1e-9 && !stage.noFail;
+      if (broke) { st.status = 'broken'; st.hitSpeed = vp; }
       if (axisX) {
         st.x = (st.x - x0 < x1 - st.x) ? x0 : x1;
         st.vx = -cfg.restitution * st.vx;      // 垂直な向きは逆向きで0.3倍
@@ -76,6 +93,7 @@ window.ID = window.ID || {};
         st.y = (st.y - y0 < y1 - st.y) ? y0 : y1;
         st.vy = -cfg.restitution * st.vy;      // 壁に沿った向きは変わらない
       }
+      if (broke) return;              // 少し跳ね返ったところで荷物破損
       if (vp > 0.05) st.bounceCount++;
     }
   }
@@ -103,7 +121,7 @@ window.ID = window.ID || {};
 
   // 給料の計算（仕様書 6章）：手取り = 基本給 + 精度ボーナス + 速達ボーナス − 燃料代
   function calcPay(st, stage, cfg) {
-    var precision = Math.round(cfg.precisionBonusMax * Math.max(0, 1 - st.offset / stage.dock.radius));
+    var precision = Math.round(cfg.precisionBonusMax * Math.max(0, 1 - st.offset / (st.dockR || stage.dock.radius)));
     var full = stage.targetTime * cfg.speedBonusFullRatio;
     var r = (stage.targetTime - st.t) / (stage.targetTime - full);
     r = r < 0 ? 0 : (r > 1 ? 1 : r);
@@ -159,7 +177,7 @@ window.ID = window.ID || {};
     if (st.status !== 'playing') return;
 
     // 場外
-    if (st.x < 0 || st.x > cfg.worldWidth ||
+    if (st.x < 0 || st.x > (stage.width || cfg.worldWidth) ||
         st.y < -cfg.outMargin || st.y > stage.height + cfg.outMargin) {
       st.status = 'out';
       return;
@@ -169,11 +187,12 @@ window.ID = window.ID || {};
     var d = dockPosition(stage, st.t);
     var dist = Math.hypot(st.x - d.x, st.y - d.y);
     var rel = Math.hypot(st.vx - d.vx, st.vy - d.vy);
-    if (F === 0 && dist <= stage.dock.radius && rel <= cfg.dockMaxSpeed) {
+    if (F === 0 && dist <= d.r && rel <= cfg.dockMaxSpeed) {
       st.hold += dt;
       if (st.hold >= cfg.dockHoldTime) {
         st.status = 'success';
         st.offset = dist;
+        st.dockR = d.r;   // その瞬間の受け取り口の半径（精度ボーナスに使う）
       }
     } else {
       st.hold = 0;

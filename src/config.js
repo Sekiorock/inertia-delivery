@@ -2,7 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.5.1',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.6.0',        // 画面の左下に小さく表示する（更新の確認用）
   publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // QRコードの画面に出すURL
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]
   physicsHz: 120,          // 物理計算の回数 [回/秒]
@@ -10,7 +10,7 @@ ID.config = {
   fuelPrice: 1000,         // 燃料の単価 [円/kg]
 
   // 壁との衝突（仕様書 3章）
-  wallBreakSpeed: 1.0,     // 壁に垂直な向きの速さがこれを超えると荷物破損 [m/s]
+  wallBreakSpeed: 5.0,     // 壁に垂直な向きの速さがこれを超えると荷物破損 [m/s]（生徒の意見で 1.0 から変更）
   restitution: 0.3,        // 跳ね返るときの反発係数
   saveKey: 'inertia-delivery-v1',   // 端末のブラウザに保存するときの名前
 
@@ -20,7 +20,7 @@ ID.config = {
 
   // 給料（仕様書 6章）
   precisionBonusMax: 3000, // 精度ボーナスの上限 [円]。中心でこの額、円のふちで0円
-  speedBonusMax: 3000,     // 速達ボーナスの上限 [円]
+  speedBonusMax: 6000,     // 速達ボーナスの上限 [円]（生徒の意見で 3000 から変更）
   speedBonusFullRatio: 0.5,// 目標時間のこの割合以下で届けると速達ボーナスが満額
   star3Ratio: 1.2,         // 手取りが基本給のこの倍以上で星3
   star2Ratio: 1.0,         // 手取りが基本給のこの倍以上で星2（成功すれば最低でも星1）
@@ -43,6 +43,7 @@ ID.config = {
 
   shakePx: 1.5,            // 大型機の最大出力で画面が揺れる幅 [px]
   dockEffectTime: 1.0,     // ドッキングの効果を見せる時間 [s]
+  crashEffectTime: 1.4,    // 荷物破損の演出を見せる時間 [s]
   volume: 0.6,             // 音量（0〜1）
 
   outMargin: 15,           // ステージの上下にこれだけ出たら場外 [m]
@@ -64,7 +65,7 @@ ID.config = {
       maxThrust: 600,      // 最大推力 [N]
       minThrust: 30,       // 最小推力 [N]
       minBurnTime: 0.05,   // 最短の噴射時間 [s]
-      jitterDeg: 4,        // 噴射の向きのぶれ（最大） [°]
+      jitterDeg: 6,        // 噴射の向きのぶれ（最大） [°]（生徒の意見で 4 から変更）
       size: 1.6,           // 四角形の一辺 [m]
       color: '#F29BB8'
     },

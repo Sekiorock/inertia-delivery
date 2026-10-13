@@ -17,7 +17,7 @@ ID.textsAll.ja = {
   parenOpen: '（', parenClose: '）',
   stageNames: {
     stage0: '研修', stage1: 'まっすぐ配達', stage2: '曲がり角',
-    stage3: '精密ドッキング', stage4: '動くステーション'
+    stage3: '精密ドッキング', stage4: '動くステーション', stage5: '迷宮ステーション'
   },
   shipNames: { shizuka: 'しずか', takeshi: 'たけし' },
   shipTags: { shizuka: '小回りが利く精密派', takeshi: 'パワーで押し切る安定派' },
@@ -81,7 +81,8 @@ ID.textsAll.ja = {
     stage1: '急ぎの部品です。壊さないでね。',
     stage2: '角の向こうまでお願い。曲がる前に、いったん落ち着いて。',
     stage3: '受け取り口が小さいんだ。そっと頼むよ。',
-    stage4: 'ステーションは動いています。速さを合わせてください。'
+    stage4: 'ステーションは動いています。速さを合わせてください。',
+    stage5: '迷路の奥のステーションが、気まぐれに動き回っています。大きさも変わるので気をつけて。'
   },
   out: '場外',
   outBody: 'ステージの外に出ました',
@@ -108,7 +109,7 @@ ID.textsAll.en = {
   parenOpen: ' (', parenClose: ')',
   stageNames: {
     stage0: 'Training', stage1: 'Straight Delivery', stage2: 'The Corner',
-    stage3: 'Precision Docking', stage4: 'Moving Station'
+    stage3: 'Precision Docking', stage4: 'Moving Station', stage5: 'Labyrinth Station'
   },
   shipNames: { shizuka: 'Shizuka', takeshi: 'Takeshi' },
   shipTags: { shizuka: 'Nimble and precise', takeshi: 'Steady and powerful' },
@@ -172,7 +173,8 @@ ID.textsAll.en = {
     stage1: 'These parts are urgent. Please do not break them.',
     stage2: 'Take it around the corner. Settle down before you turn.',
     stage3: 'The dock is tiny. Bring it in gently.',
-    stage4: 'The station is moving. Match its speed.'
+    stage4: 'The station is moving. Match its speed.',
+    stage5: 'Deep in the maze, the station wanders around and even changes size. Good luck.'
   },
   out: 'Out of bounds',
   outBody: 'You left the stage',
