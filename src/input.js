@@ -1,48 +1,48 @@
-// 指とマウスの操作（仕様書 4章）
-// 操作エリアに触れて指をずらすと、ずらした向きに噴射する。
-window.ID = window.ID || {};
+// 指とマウスの操作
+// 操作エリアをなぞると、なぞった向きが打ち出しの角度、長さが速さになる。
+// 予測の段階では、ステージをタップして着地点の予測を置く。
+window.PB = window.PB || {};
 
 (function () {
-  var s = {
-    active: false, pointerId: null,
-    originX: 0, originY: 0,   // 最初に触れた点 [px]
-    curX: 0, curY: 0,         // 今の指の位置 [px]
-    enabled: true
-  };
-  var canvas = null, cfg = null;
+  var canvas, cfg, handlers;
+  var drag = { active: false, id: null, ox: 0, oy: 0, x: 0, y: 0 };
 
   function pos(e) {
     var r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top, h: r.height };
   }
-
   function down(e) {
-    if (!s.enabled || s.active) return;
+    if (drag.active || !handlers.enabled()) return;
     var p = pos(e);
-    if (p.y < p.h * (1 - cfg.controlAreaRatio)) return;   // 操作エリアの外
-    s.active = true; s.pointerId = e.pointerId;
-    s.originX = s.curX = p.x; s.originY = s.curY = p.y;
+    if (p.y < p.h * (1 - cfg.controlAreaRatio)) {   // ステージをタップ
+      handlers.tapStage(p.x, p.y);
+      return;
+    }
+    drag.active = true; drag.id = e.pointerId;
+    drag.ox = drag.x = p.x; drag.oy = drag.y = p.y;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     e.preventDefault();
   }
   function move(e) {
-    if (!s.active || e.pointerId !== s.pointerId) return;
-    var p = pos(e);
-    s.curX = p.x; s.curY = p.y;
+    if (!drag.active || e.pointerId !== drag.id) return;
+    var p = pos(e); drag.x = p.x; drag.y = p.y;
+    var dx = drag.x - drag.ox, dy = drag.oy - drag.y, d = Math.hypot(dx, dy);
+    if (d > cfg.deadZonePx) {
+      var th = Math.atan2(dy, dx) * 180 / Math.PI;
+      th = Math.max(0, Math.min(90, th));
+      var v = Math.min(1, (d - cfg.deadZonePx) / (cfg.aimFullPx - cfg.deadZonePx)) * cfg.vMax;
+      handlers.aim(v, th);
+    }
     e.preventDefault();
   }
-  function up(e) {
-    if (!s.active || e.pointerId !== s.pointerId) return;
-    s.active = false; s.pointerId = null;
-  }
+  function up(e) { if (drag.active && e.pointerId === drag.id) { drag.active = false; drag.id = null; } }
 
-  function init(canvasEl, config) {
-    canvas = canvasEl; cfg = config;
+  function init(canvasEl, config, h) {
+    canvas = canvasEl; cfg = config; handlers = h;
     canvas.addEventListener('pointerdown', down);
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerup', up);
     canvas.addEventListener('pointercancel', up);
-    // ピンチでの拡大やスクロールを無効にする
     var stop = function (e) { e.preventDefault(); };
     document.addEventListener('touchmove', stop, { passive: false });
     document.addEventListener('gesturestart', stop);
@@ -56,19 +56,17 @@ window.ID = window.ID || {};
     }, { passive: false });
   }
 
-  // 今の操作を噴射の指示に直す。画面は下が正なので、yの向きを反転する。
-  function getCommand() {
-    if (!s.active || !s.enabled) return { on: false, dirX: 0, dirY: 0, level: 0 };
-    var dx = s.curX - s.originX, dy = s.curY - s.originY;
-    var d = Math.hypot(dx, dy);
-    if (d <= cfg.deadZonePx) return { on: false, dirX: 0, dirY: 0, level: 0 };
-    var level = (d - cfg.deadZonePx) / (cfg.fullPowerPx - cfg.deadZonePx);
-    if (level > 1) level = 1;
-    return { on: true, dirX: dx / d, dirY: -dy / d, level: level };
+  // 押し続けると連続で変わるボタン（微調整用）
+  function repeatButton(el, fn) {
+    var t1 = 0, t2 = 0;
+    function stopIt() { clearTimeout(t1); clearInterval(t2); }
+    el.addEventListener('pointerdown', function (e) {
+      e.preventDefault(); fn();
+      stopIt();
+      t1 = setTimeout(function () { t2 = setInterval(fn, 70); }, 380);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { el.addEventListener(ev, stopIt); });
   }
 
-  function reset() { s.active = false; s.pointerId = null; }
-  function setEnabled(v) { s.enabled = v; if (!v) reset(); }
-
-  ID.input = { init: init, getCommand: getCommand, reset: reset, setEnabled: setEnabled, state: s };
+  PB.input = { init: init, drag: drag, repeatButton: repeatButton };
 })();

@@ -1,6 +1,6 @@
 // 電子音の合成（仕様書 8章）
 // 音声ファイルは使わず、ブラウザの音声合成機能（Web Audio API）でその場で作る。
-window.ID = window.ID || {};
+window.PB = window.PB || {};
 
 (function () {
   var ac = null, master = null, enabled = true, lastTick = 0;
@@ -13,7 +13,7 @@ window.ID = window.ID || {};
     if (!AC) return false;
     try { ac = new AC(); } catch (e) { ac = null; return false; }
     master = ac.createGain();
-    master.gain.value = enabled ? ID.config.volume : 0;
+    master.gain.value = enabled ? PB.config.volume : 0;
     master.connect(ac.destination);
     return true;
   }
@@ -74,7 +74,7 @@ window.ID = window.ID || {};
   function setEnabled(v) {
     enabled = v;
     if (keepAlive && !v) keepAlive.pause();
-    if (ac) master.gain.setTargetAtTime(v ? ID.config.volume : 0, ac.currentTime, 0.02);
+    if (ac) master.gain.setTargetAtTime(v ? PB.config.volume : 0, ac.currentTime, 0.02);
   }
   // 画面が隠れたら止め、戻ったら再開する
   function setSuspended(v) {
@@ -153,6 +153,16 @@ window.ID = window.ID || {};
         var f = [880, 1108.7, 1318.5][n || 0];
         tone('triangle', f, f, 0.08, 0.16);
         tone('triangle', f * 1.5, f * 1.5, 0.22, 0.16, 0.07); break;
+      case 'launch':    // 投げたときの「ヒュッ」
+        noise(1200, 4000, 0.18, 0.25);
+        tone('sine', 300, 900, 0.16, 0.15); break;
+      case 'land':      // 着地の「ポスッ」
+        noise(900, 120, 0.16, 0.35);
+        tone('sine', 160, 70, 0.14, 0.25); break;
+      case 'miss':      // 届かなかったとき
+        [330, 262].forEach(function (f, j) { tone('triangle', f, f, 0.18, 0.14, j * 0.13); }); break;
+      case 'pin':       // 予測のピンを置いた
+        tone('triangle', 1046, 1046, 0.07, 0.12); break;
       case 'sparkle':   // 連続する「キラキラ」
         for (i = 0; i < 8; i++) tone('sine', 1600 + Math.random() * 2000, 0, 0.12, 0.07, 0.4 + i * 0.07);
         break;
@@ -192,5 +202,5 @@ window.ID = window.ID || {};
              keepAlive: keepAlive ? (keepAlive.paused ? 'paused' : 'playing') : 'none', enabled: enabled };
   }
 
-  ID.audio = { init: init, play: play, thrust: thrust, setEnabled: setEnabled, setSuspended: setSuspended, status: status };
+  PB.audio = { init: init, play: play, thrust: thrust, setEnabled: setEnabled, setSuspended: setSuspended, status: status };
 })();
