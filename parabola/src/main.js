@@ -12,14 +12,18 @@ window.PB = window.PB || {};
   function $(id) { return document.getElementById(id); }
   function yen(n) { return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('ja-JP') + T.yen; }
   // 重力の表示：斜面では g sinθ、それ以外は g
-  function gText(w) { return (w.slope ? 'g sinθ = ' : 'g = ') + w.g.toFixed(2) + ' m/s²'; }
+  function gText(w, s) {
+    if (w.rail) return s ? fill(T.railInfo, { a: s.aMax.toFixed(1) }) : '';
+    return (w.slope ? 'g sinθ = ' : 'g = ') + w.g.toFixed(2) + ' m/s²';
+  }
   function fill(tpl, o) { return tpl.replace(/\{(\w+)\}/g, function (m, k) { return o[k]; }); }
   function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
 
   // 解く順番：ステージ1の体感 → ステージ1の予測 → ステージ2の体感 → …
   var MODES = ['feel', 'predict', 'estimate', 'design'];
-  var order = [];
-  stages.forEach(function (s, i) { MODES.forEach(function (m) { order.push({ i: i, mode: m }); }); });
+  function modesOf(s) { return s.modes || MODES; }
+  var order = [], orderIndex = {};
+  stages.forEach(function (s, i) { modesOf(s).forEach(function (m) { orderIndex[s.id + ':' + m] = order.length; order.push({ i: i, mode: m }); }); });
 
   // ---------- 保存（端末のブラウザの中だけ） ----------
   var save = { cleared: {}, best: {}, wallet: 0, sound: true, shadow: true, quiz: {} };
@@ -42,9 +46,9 @@ window.PB = window.PB || {};
   function cleared(i, m) { return !!(stages[i] && save.cleared[stages[i].id + ':' + m]); }
   function isOpen(k) {
     if (unlockAll || k === 0) return true;
-    var i = order[k].i, m = MODES.indexOf(order[k].mode);
+    var i = order[k].i, ms = modesOf(stages[i]), m = ms.indexOf(order[k].mode);
     if (m === 0 && (i === 0 || stages[i - 1].chapter !== stages[i].chapter)) return true;   // 章の最初のステージ
-    return m === 0 ? cleared(i - 1, 'predict') : cleared(i, MODES[m - 1]);
+    return m === 0 ? cleared(i - 1, 'predict') : cleared(i, ms[m - 1]);
   }
 
   // ---------- 今の状態 ----------
@@ -102,8 +106,8 @@ window.PB = window.PB || {};
       var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = (i + 1) + '. ' + T.stageNames[s.id];
       card.appendChild(nm);
       var modes = document.createElement('div'); modes.className = 'modes';
-      MODES.forEach(function (m, mi) {
-        var k = i * MODES.length + mi, best = save.best[s.id + ':' + m];
+      modesOf(s).forEach(function (m) {
+        var k = orderIndex[s.id + ':' + m], best = save.best[s.id + ':' + m];
         var b = document.createElement('button'); b.type = 'button'; b.className = 'mode-btn'; b.id = 'mode-' + s.id + '-' + m;
         var t1 = document.createElement('b'); t1.textContent = T.modeNames[m]; b.appendChild(t1);
         var stars = document.createElement('div'); stars.className = 'stars';
@@ -128,7 +132,8 @@ window.PB = window.PB || {};
     $('brief-name').textContent = T.stageNames[stage.id];
     $('brief-mode').textContent = T.worldNames[stage.world] + '　／　' + T.modeNames[mode];
     $('brief-hook').textContent = '「' + T.stageHooks[stage.id] + '」';
-    $('brief-g-l').textContent = world.slope ? T.slopeAcc : T.gravity + ' g'; $('brief-g').textContent = world.g.toFixed(2) + ' m/s²';
+    $('brief-g-l').textContent = world.rail ? T.aMaxLabel : (world.slope ? T.slopeAcc : T.gravity + ' g');
+    $('brief-g').textContent = (world.rail ? stage.aMax : world.g).toFixed(2) + ' m/s²';
     $('brief-base-l').textContent = T.basePay; $('brief-base').textContent = yen(stage.basePay);
     $('brief-desc').textContent = T.modeDesc[mode];
     show('brief');
@@ -136,6 +141,8 @@ window.PB = window.PB || {};
 
   // ---------- 狙う ----------
   function startAim() {
+    document.body.classList.toggle('rail', !!stage.rail);
+    if (stage.rail) { startLine(); return; }
     st = P.createState(stage);
     aim = aims[stage.id] || { v: 10, theta: 45 };
     pin = null; paused = false; acc = 0;
@@ -181,6 +188,113 @@ window.PB = window.PB || {};
     arrowsHidden = quizPending.length > 0;   // 答える前に矢印で答えが分からないように隠す
     vy0 = st.vy;
     PB.audio.play('launch'); vibrate(15);
+  }
+
+  // ---------- 第1章「直線便」：グラフを描いて走らせる ----------
+  var lineNodes = {}, designPts = {}, lineInfo = null, lineRun = null, lineResult = null, lastI = 0;
+  function startLine() {
+    paused = false; lineRun = null; lineResult = null; est = null;
+    document.body.classList.remove('space');
+    PB.render.setWorldChip(T.worldNames.rail + '　' + gText(world, stage));
+    $('lbl-x').textContent = T.hudRail.x; $('lbl-y').textContent = T.hudRail.y; $('lbl-v').textContent = T.hudRail.v;
+    if (!lineNodes[stage.id]) { lineNodes[stage.id] = []; for (var i = 0; i <= stage.T; i++) lineNodes[stage.id].push(0); }
+    show('aim');
+    $('btn-go').textContent = mode === 'estimate' ? T.estimateBtn : T.goBtn;
+    $('btn-clear').textContent = T.clearBtn;
+    $('btn-clear').style.visibility = mode === 'design' ? 'hidden' : 'visible';
+    updateLine();
+    if (mode === 'design') openSheet();
+  }
+  function updateLine() {
+    var pts = mode === 'design' ? (designPts[stage.id] || [{ t: 0, v: 0 }, { t: stage.T, v: 0 }]) : PB.line.fromNodes(lineNodes[stage.id]);
+    lineInfo = PB.line.build(pts);
+    var allZero = pts.every(function (p) { return p.v === 0; });
+    $('btn-go').disabled = phase !== 'aim' || allZero || lineInfo.maxA > stage.aMax + 1e-9;
+  }
+  // グラフを指でなぞる：1秒ごとの点の速さを決める（途中の点は直線でつなぐ）
+  function graphAt(px, py, start) {
+    var g = PB.render.graphRect(stage), nodes = lineNodes[stage.id];
+    var i = Math.round((px - g.x) / g.w * stage.T); i = Math.max(1, Math.min(stage.T, i));
+    var v = stage.vMax - (py - g.y) / g.h * (stage.vMax - stage.vMin);
+    v = Math.round(v / cfg.vStep) * cfg.vStep; v = Math.max(stage.vMin, Math.min(stage.vMax, v));
+    if (start || !lastI) lastI = i;
+    var from = lastI, vFrom = nodes[from];
+    var dir = i >= from ? 1 : -1;
+    for (var k = from; k !== i + dir; k += dir) {
+      if (k === i || from === i) { nodes[k] = v; continue; }
+      var f = (k - from) / (i - from);
+      nodes[k] = Math.round((vFrom + (v - vFrom) * f) / cfg.vStep) * cfg.vStep;
+    }
+    nodes[i] = v; lastI = i;
+    updateLine();
+  }
+  function startRun() {
+    if (lineInfo.maxA > stage.aMax + 1e-9) return;
+    $('sheet').hidden = true;
+    var end = lineInfo.arrival != null ? Math.min(lineInfo.endT, lineInfo.arrival + 0.6) : lineInfo.endT;
+    lineRun = { t: 0, trail: [], next: 1, end: end, now: PB.line.at(lineInfo, 0) };
+    quizPending = [];
+    if (mode === 'feel' && stage.quiz) stage.quiz.forEach(function (q, i) {
+      if (!save.quiz[stage.id + ':' + i]) quizPending.push({ q: q, key: stage.id + ':' + i });
+    });
+    quizEarned = 0; quizActive = false; quizAt = null; arrowsHidden = quizPending.length > 0;
+    show('flying'); updateLine();
+    PB.audio.play('launch'); vibrate(15);
+  }
+  function lineQuizDue(at, n) {
+    if (lineRun.t < 0.3) return false;
+    if (at === 'brake') return n.v > 0.05 && n.a < -1e-9;
+    if (at === 'cruise') return n.v > 0.05 && Math.abs(n.a) < 1e-9;
+    if (at === 'speedup') return n.v > 0.05 && n.a > 1e-9;
+    if (at === 'reverse') return n.v < -0.3;
+    return false;
+  }
+  function stepLine(dt) {
+    var r = lineRun;
+    r.t = Math.min(r.end, r.t + dt);
+    while (r.next <= r.t + 1e-9 && r.next <= lineInfo.endT) { r.trail.push(PB.line.at(lineInfo, r.next)); r.next++; }
+    r.now = PB.line.at(lineInfo, r.t);
+    if (quizPending.length && lineQuizDue(quizPending[0].q.at, r.now)) { quizAt = quizPending[0].q.at; openQuiz(); return; }
+    if (r.t >= r.end) lineLanded();
+  }
+  function lineLanded() {
+    var j = PB.line.judge(lineInfo, stage), info = lineInfo;
+    show('landed');
+    lineResult = j.ok ? 'hit' : 'miss';
+    PB.audio.play('land');
+    if (!j.ok) {
+      PB.audio.play('miss');
+      var msg = j.why === 'over' ? fill(T.lineOver, { d: j.d.toFixed(2) }) : j.why === 'short' ? fill(T.lineShort, { d: j.d.toFixed(2) })
+              : j.why === 'via' ? fill(T.lineVia, { x: j.target }) : j.why === 'moving' ? T.lineMoving : T.lineAccel;
+      timer = setTimeout(function () {
+        showOverlay(T.missTitle, msg + '\n' + fill(T.stopAt, { x: info.endX.toFixed(2) }), [[T.retrySame, startAim], [T.stageSelect, showStages]]);
+      }, 700);
+      return;
+    }
+    hitAt = performance.now();
+    PB.audio.play('dock'); vibrate([30, 40, 30]);
+    var lines = [fill(T.arrivalLine, { t: info.arrival.toFixed(1), f: stage.fastTime })];
+    var precision = Math.round(cfg.precisionBonusMax * Math.max(0, 1 - j.d / stage.tol));
+    var sp = (stage.T - info.arrival) / (stage.T - stage.fastTime);
+    var speed = Math.round(cfg.speedBonusMax * Math.max(0, Math.min(1, sp)));
+    var estB = 0, desB = 0;
+    if (mode === 'estimate' && est) {
+      [['x', T.estLx, info.endX, 'm'], ['a', T.estLa, info.maxA, 'm/s²']].forEach(function (f) {
+        var e = est[f[0]], a = f[2], p = Math.abs(e - a) / Math.max(Math.abs(a), 0.01) * 100;
+        var k = p <= cfg.estimateFullPct ? 1 : Math.max(0, (cfg.estimateZeroPct - p) / (cfg.estimateZeroPct - cfg.estimateFullPct));
+        estB += Math.round(cfg.lineEstimateEach * k);
+        lines.push(fill(T.estLine, { name: f[1], e: e.toFixed(2) + ' ' + f[3], a: a.toFixed(2) + ' ' + f[3], p: p.toFixed(1) }));
+      });
+    }
+    if (mode === 'design') { desB = designTries === 1 ? cfg.designBonus : 0; lines.push(designTries === 1 ? T.firstTry : fill(T.laterTry, { n: designTries })); }
+    var cost = Math.round(cfg.railPrice * cfg.cartMass * info.sumDv);
+    var gross = stage.basePay + precision + speed + quizEarned + estB + desB, net = gross - cost;
+    var stars = net >= stage.basePay * cfg.star3Ratio ? 3 : (net >= stage.basePay * cfg.star2Ratio ? 2 : 1);
+    var pay = { base: stage.basePay, precision: precision, predict: 0, speed: speed, quiz: quizEarned, estimate: estB, design: desB, efficiency: 0,
+                err: null, cost: cost, gross: gross, net: net, stars: stars, lines: lines,
+                dataText: fill(T.stopAt, { x: info.endX.toFixed(2) }),
+                slipLabel: T.powerSlip + '（' + cfg.cartMass + ' kg × ' + info.sumDv.toFixed(1) + ' m/s）' };
+    timer = setTimeout(function () { showResult(pay); }, 1300);
   }
 
   // ---------- 着地 ----------
@@ -241,7 +355,7 @@ window.PB = window.PB || {};
     writeSave();
 
     $('result-title').textContent = T.success;
-    var data = fill(T.flightData, { t: st.t.toFixed(2), h: st.maxY.toFixed(2), x: (st.x - stage.launch.x).toFixed(2) });
+    var data = pay.dataText ? pay.dataText : fill(T.flightData, { t: st.t.toFixed(2), h: st.maxY.toFixed(2), x: (st.x - stage.launch.x).toFixed(2) });
     if (pay.err != null) data += '\n' + fill(T.predictErr, { e: pay.err.toFixed(2) });
     if (pay.lines && pay.lines.length) data += '\n' + pay.lines.join('\n');
     $('result-data').textContent = data; $('result-data').style.whiteSpace = 'pre-line';
@@ -255,10 +369,11 @@ window.PB = window.PB || {};
     row('row-quiz', T.quizBonus, pay.quiz, pay.quiz > 0);
     row('row-estimate', T.estimateBonus, pay.estimate, mode === 'estimate');
     row('row-design', T.designBonus, pay.design, mode === 'design');
-    row('row-eff', T.effBonus, pay.efficiency, mode === 'design');
+    row('row-eff', T.effBonus, pay.efficiency, mode === 'design' && !stage.rail);
+    row('row-speed', T.speedBonus, pay.speed || 0, !!stage.rail);
     $('pay-label').textContent = T.gross; amount.textContent = yen(0);
     box.classList.remove('final'); box.classList.add('hide');
-    $('slip-label').textContent = T.energySlip + '（' + Math.round(pay.energy) + ' J）';
+    $('slip-label').textContent = pay.slipLabel || (T.energySlip + '（' + Math.round(pay.energy) + ' J）');
     $('slip-amount').textContent = '−' + yen(pay.cost);
     slip.classList.remove('in');
     var stars = $('stars'); stars.innerHTML = '';
@@ -287,7 +402,7 @@ window.PB = window.PB || {};
     }
     function run() { if (my !== animId) return; var f = queue.shift(); if (f) f(run); }
     wait(400);
-    ['row-base', 'row-precision', 'row-predict', 'row-quiz', 'row-estimate', 'row-design', 'row-eff'].forEach(function (id) {
+    ['row-base', 'row-precision', 'row-speed', 'row-predict', 'row-quiz', 'row-estimate', 'row-design', 'row-eff'].forEach(function (id) {
       act(function () { $(id).classList.remove('hide'); }); wait(220);
     });
     act(function () { box.classList.remove('hide'); });
@@ -338,6 +453,7 @@ window.PB = window.PB || {};
   function openSheet() {
     var f = $('sheet-fields'); f.innerHTML = ''; $('sheet-msg').textContent = '';
     $('sheet-throw').textContent = T.sheetThrow;
+    if (stage.rail) { openLineSheet(f); return; }
     if (mode === 'estimate') {
       var e = estInputs[stage.id] || {};
       $('sheet-title').textContent = T.estimateTitle;
@@ -364,11 +480,60 @@ window.PB = window.PB || {};
     }
     $('sheet').hidden = false;
   }
+  function openLineSheet(f) {
+    $('sheet-throw').textContent = T.goBtn;
+    if (mode === 'estimate') {
+      var e = estInputs[stage.id] || {};
+      $('sheet-title').textContent = T.estimateTitle; $('sheet-sub').textContent = '';
+      f.appendChild(field('in-lx', T.estLx, 'm', e.x));
+      f.appendChild(field('in-la', T.estLa, 'm/s²', e.a));
+      $('sheet-back').textContent = T.sheetBack;
+    } else {
+      var d = designInputs[stage.id] || {};
+      $('sheet-title').textContent = T.designLineTitle;
+      $('sheet-sub').textContent = fill(T.designLineSub, { x: stage.targets[0], a: stage.aMax.toFixed(1), v: stage.vMax.toFixed(1) });
+      f.appendChild(field('in-a', T.fieldA, 'm/s²', d.a));
+      f.appendChild(field('in-vt', T.fieldVtop, 'm/s', d.v));
+      f.appendChild(field('in-t2', T.fieldT2, 's', d.t2));
+      ['in-a', 'in-vt', 'in-t2'].forEach(function (id) {
+        $(id).addEventListener('input', function () {
+          $('sheet-msg').textContent = '';
+          designInputs[stage.id] = { a: $('in-a').value, v: $('in-vt').value, t2: $('in-t2').value };
+          var pts = linePtsFromInputs();
+          if (pts) { designPts[stage.id] = pts; updateLine(); }
+        });
+      });
+      $('sheet-back').textContent = T.stageSelect;
+    }
+    $('sheet').hidden = false;
+  }
+  function linePtsFromInputs() {
+    var a = parseNum($('in-a').value), v = parseNum($('in-vt').value), t2 = parseNum($('in-t2').value);
+    if (a == null || v == null || t2 == null) return null;
+    if (a <= 0 || a > stage.aMax + 1e-9 || v <= 0 || v > stage.vMax + 1e-9 || t2 < 0 || 2 * v / a + t2 > stage.T + 1e-9) return false;
+    return PB.line.trapezoid(a, v, t2);
+  }
+  function lineSheetGo() {
+    if (mode === 'estimate') {
+      var x = parseNum($('in-lx').value), a = parseNum($('in-la').value);
+      estInputs[stage.id] = { x: $('in-lx').value, a: $('in-la').value };
+      if (x == null || a == null) { $('sheet-msg').textContent = T.inputError; return; }
+      est = { x: x, a: a };
+    } else {
+      var pts = linePtsFromInputs();
+      if (pts == null) { $('sheet-msg').textContent = T.inputError; return; }
+      if (pts === false) { $('sheet-msg').textContent = fill(T.designLineErr, { a: stage.aMax.toFixed(1), v: stage.vMax.toFixed(1), T: stage.T }); return; }
+      designPts[stage.id] = pts; designTries++; updateLine();
+    }
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    startRun();
+  }
   $('sheet-back').addEventListener('click', function () {
     if (mode === 'design') { showStages(); return; }
     $('sheet').hidden = true;
   });
   $('sheet-throw').addEventListener('click', function () {
+    if (stage.rail) { lineSheetGo(); return; }
     if (mode === 'estimate') {
       var t = parseNum($('in-t').value), h = parseNum($('in-h').value), x = parseNum($('in-x').value);
       estInputs[stage.id] = { t: $('in-t').value, h: $('in-h').value, x: $('in-x').value };
@@ -442,6 +607,17 @@ window.PB = window.PB || {};
   function frame(now) {
     var dt = (now - lastTime) / 1000; lastTime = now;
     if (dt > 0.1) dt = 0.1;
+    if (stage.rail) {
+      if (phase === 'flying' && !paused && !quizActive) stepLine(dt);
+      if (['aim', 'flying', 'landed'].indexOf(phase) >= 0) {
+        PB.render.drawLine({ stage: stage, mode: mode, info: lineInfo, run: phase === 'aim' ? null : lineRun,
+          editable: phase === 'aim' && mode !== 'design', showNumbers: mode === 'feel', arrows: !arrowsHidden, freeze: quizActive,
+          result: phase === 'landed' ? lineResult : null,
+          fx: { hit: phase === 'landed' && lineResult === 'hit' ? Math.min(1, (now - hitAt) / 1000) : null } });
+      }
+      requestAnimationFrame(frame);
+      return;
+    }
     if (phase === 'flying' && !paused && !quizActive) {
       acc += dt;
       while (acc >= DT && st.flying && !quizActive) {
@@ -464,9 +640,11 @@ window.PB = window.PB || {};
   // ---------- 操作 ----------
   PB.input.init($('game'), cfg, {
     enabled: function () { return phase === 'aim' && !paused && mode !== 'design' && $('sheet').hidden; },
+    graphMode: function () { return !!stage.rail; },
+    graph: function (x, y, start) { graphAt(x, y, start); },
     aim: function (v, th) { aim.v = v; aim.theta = th; updateAim(); },
     tapStage: function (px) {
-      if (mode !== 'predict') return;
+      if (mode !== 'predict' || stage.rail) return;
       var x = PB.render.toWorldX(px);
       pin = Math.max(stage.launch.x, Math.min(stage.width, Math.round(x * 10) / 10));
       PB.audio.play('pin'); updateAim();
@@ -477,6 +655,15 @@ window.PB = window.PB || {};
   PB.input.repeatButton($('v-minus'), function () { if (phase === 'aim') { aim.v -= cfg.speedStep; updateAim(); } });
   PB.input.repeatButton($('v-plus'), function () { if (phase === 'aim') { aim.v += cfg.speedStep; updateAim(); } });
   $('btn-throw').addEventListener('click', throwIt);
+  $('btn-go').addEventListener('click', function () {
+    if (phase !== 'aim' || $('btn-go').disabled) return;
+    if (mode === 'estimate' && $('sheet').hidden) { openSheet(); return; }
+    startRun();
+  });
+  $('btn-clear').addEventListener('click', function () {
+    if (phase !== 'aim') return;
+    lineNodes[stage.id] = lineNodes[stage.id].map(function () { return 0; }); updateLine();
+  });
   $('btn-pause').addEventListener('click', function () {
     if (phase !== 'aim' && phase !== 'flying') return;
     if (phase === 'aim' && !$('sheet').hidden) return;
@@ -534,6 +721,6 @@ window.PB = window.PB || {};
   lastTime = performance.now();
   requestAnimationFrame(frame);
 
-  PB.debug = { st: function () { return st; }, quizActive: function () { return quizActive; }, save: function () { return save; }, aim: aim, setAim: function (v, t) { aim.v = v; aim.theta = t; updateAim(); },
+  PB.debug = { line: function () { return { nodes: lineNodes[stage.id], info: lineInfo, run: lineRun }; }, setNodes: function (n) { lineNodes[stage.id] = n.slice(); updateLine(); }, st: function () { return st; }, quizActive: function () { return quizActive; }, save: function () { return save; }, aim: aim, setAim: function (v, t) { aim.v = v; aim.theta = t; updateAim(); },
                phase: function () { return phase; }, setPin: function (x) { pin = x; updateAim(); } };
 })();

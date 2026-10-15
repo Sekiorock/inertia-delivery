@@ -14,6 +14,13 @@ window.PB = window.PB || {};
   function down(e) {
     if (drag.active || !handlers.enabled()) return;
     var p = pos(e);
+    if (handlers.graphMode && handlers.graphMode()) {   // 第1章：v-t グラフをなぞる
+      if (p.y < p.h * (1 - cfg.controlAreaRatio)) return;
+      drag.active = true; drag.graph = true; drag.id = e.pointerId;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      handlers.graph(p.x, p.y, true); e.preventDefault(); return;
+    }
+    drag.graph = false;
     if (p.y < p.h * (1 - cfg.controlAreaRatio)) {   // ステージをタップ
       handlers.tapStage(p.x, p.y);
       return;
@@ -26,6 +33,7 @@ window.PB = window.PB || {};
   function move(e) {
     if (!drag.active || e.pointerId !== drag.id) return;
     var p = pos(e); drag.x = p.x; drag.y = p.y;
+    if (drag.graph) { handlers.graph(p.x, p.y, false); e.preventDefault(); return; }
     var dx = drag.x - drag.ox, dy = drag.oy - drag.y, d = Math.hypot(dx, dy);
     if (d > cfg.deadZonePx) {
       var th = Math.atan2(dy, dx) * 180 / Math.PI;

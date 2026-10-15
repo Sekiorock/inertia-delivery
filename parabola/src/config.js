@@ -2,7 +2,7 @@
 window.PB = window.PB || {};
 
 PB.config = {
-  version: '0.4.0',
+  version: '0.5.0',
   publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // ホーム画面のURL
   homeUrl: '../',              // 「ホームへ」で戻る先
   saveKey: 'parabola-delivery-v1',
@@ -28,6 +28,12 @@ PB.config = {
   designBonus: 3000,         // 設計ボーナス：最初の1回で届けたとき [円]
   efficiencyBonusMax: 2000,  // 効率ボーナスの上限 [円]（最小エネルギーで投げたとき満額）
   efficiencyZeroRatio: 1.5,  // 最小エネルギーのこの倍以上なら0円
+  // 第1章「直線便」
+  cartMass: 20,              // 台車（くりまんじゅうごと）の質量 [kg]
+  railPrice: 10,             // 電気代：力積 1 N·s あたり [円]（質量 × 速さの変化の合計）
+  speedBonusMax: 2000,       // 速達ボーナスの上限 [円]（fastTime までに着けば満額、T 秒で0円）
+  lineEstimateEach: 1500,    // 見積もりボーナス：1項目あたり [円]（止まる位置・最大の加速度）
+  vStep: 0.5,                // グラフの速さの刻み [m/s]
   star3Ratio: 1.2,           // 手取りが基本給のこの倍以上で星3
   star2Ratio: 1.0,           // この倍以上で星2（成功すれば最低でも星1）
 
@@ -44,6 +50,7 @@ PB.config = {
   // slope がある世界は、上から見た斜面のテーブル。g には斜面に沿った加速度 g sinθ を入れる。
   // 火星・木星は、後の段階で使う。
   worlds: {
+    rail: { g: 0, rail: true, theme: 'day' },   // 第1章：まっすぐなレール
     slope10: { g: 1.70, slope: 10, theme: 'table' },
     slope30: { g: 4.90, slope: 30, theme: 'table' },
     slope45: { g: 6.93, slope: 45, theme: 'table' },

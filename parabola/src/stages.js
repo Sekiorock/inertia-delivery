@@ -12,6 +12,20 @@ window.PB = window.PB || {};
 // kuriR はくりまんじゅうの見た目の半径 [m]、vMax は打ち出しの速さの上限 [m/s]。
 // topRail があると、テーブルの上の端（y = height）を越えたら落ちて失敗になる。
 PB.stages = [
+  // 第1章（直線便）：targets は止まる位置の並び（最後が終点）、T はグラフの長さ [s]、
+  // vMin〜vMax はグラフの速さの範囲 [m/s]、aMax は出してよい加速度の大きさ、tol は止まる位置の許容範囲 [m]。
+  { id: 'l1', chapter: 1, world: 'rail', rail: true, basePay: 6000, width: 22, targets: [16], T: 10,
+    vMin: 0, vMax: 6, aMax: 2, tol: 0.5, fastTime: 6,
+    quiz: [ { at: 'brake', ask: 'acc', answer: 'w', explain: 'l1' } ] },
+  { id: 'l2', chapter: 1, world: 'rail', rail: true, basePay: 6500, width: 24, targets: [18], T: 12,
+    vMin: 0, vMax: 4, aMax: 1, tol: 0.5, fastTime: 9,
+    quiz: [ { at: 'cruise', ask: 'accMag', answer: '0', options: ['1.0', '0.5', '0'], explain: 'l2' } ] },
+  { id: 'l3', chapter: 1, world: 'rail', rail: true, basePay: 7000, width: 30, targets: [25], T: 10,
+    vMin: 0, vMax: 6, aMax: 2, tol: 0.5, fastTime: 7.5,
+    quiz: [ { at: 'speedup', ask: 'acc', answer: 'e', explain: 'l3' } ] },
+  { id: 'l4', chapter: 1, world: 'rail', rail: true, basePay: 8000, width: 18, targets: [12, 4], T: 14,
+    vMin: -4, vMax: 4, aMax: 2, tol: 0.5, fastTime: 11, modes: ['feel', 'predict', 'estimate'],
+    quiz: [ { at: 'reverse', ask: 'vel', answer: 'w', explain: 'l4' } ] },
   { id: 's10', chapter: 2, world: 'slope10', basePay: 4000, width: 8, height: 5, vMax: 8, kuriR: 0.2, topRail: true,
     quiz: [ { at: 'apex', ask: 'accMag', answer: '1.70', options: ['9.80', '1.70', '0'], explain: 's10' } ],
     launch: { x: 0.5, y: 0 }, basket: { x: 6, y: 0, w: 0.8 }, rects: [], strobe: 0.2, predictTol: 0.8 },

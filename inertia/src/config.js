@@ -2,7 +2,7 @@
 window.ID = window.ID || {};
 
 ID.config = {
-  version: '0.6.1',        // 画面の左下に小さく表示する（更新の確認用）
+  version: '0.6.2',        // 画面の左下に小さく表示する（更新の確認用）
   publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // ホーム画面のURL
   homeUrl: '../',          // 「ホームへ」で戻る先   // QRコードの画面に出すURL
   worldWidth: 30,          // 画面の横幅に相当する長さ [m]

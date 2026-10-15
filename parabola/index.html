@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1B2A49">
 <title>パラボラ便</title>
-<link rel="stylesheet" href="style.css?v=0.4.0">
+<link rel="stylesheet" href="style.css?v=0.5.0">
 </head>
 <body>
 <div id="frame">
@@ -32,6 +32,7 @@
       <div class="nudge"><span>v₀</span><button id="v-minus" type="button">−</button><button id="v-plus" type="button">＋</button></div>
       <button id="btn-throw" type="button"></button>
     </div>
+    <div id="rail-bar"><button id="btn-clear" type="button"></button><button id="btn-go" type="button"></button></div>
     <div id="version"></div>
   </div>
 
@@ -65,7 +66,7 @@
   <div id="qr" class="screen" hidden>
     <div id="qr-name"></div>
     <div id="qr-title"></div>
-    <img id="qr-img" src="src/qr.svg?v=0.4.0" alt="QR">
+    <img id="qr-img" src="src/qr.svg?v=0.5.0" alt="QR">
     <div id="qr-url"></div>
     <button id="btn-qr-back" class="btn primary" type="button"></button>
   </div>
@@ -99,6 +100,7 @@
     <div id="result-rows">
       <div class="row" id="row-base"><span></span><span class="num"></span></div>
       <div class="row" id="row-precision"><span></span><span class="num"></span></div>
+      <div class="row" id="row-speed"><span></span><span class="num"></span></div>
       <div class="row" id="row-predict"><span></span><span class="num"></span></div>
       <div class="row" id="row-quiz"><span></span><span class="num"></span></div>
       <div class="row" id="row-estimate"><span></span><span class="num"></span></div>
@@ -127,13 +129,14 @@
   </div>
 </div>
 
-<script src="src/config.js?v=0.4.0"></script>
-<script src="src/texts.js?v=0.4.0"></script>
-<script src="src/stages.js?v=0.4.0"></script>
-<script src="src/physics.js?v=0.4.0"></script>
-<script src="src/input.js?v=0.4.0"></script>
-<script src="src/render.js?v=0.4.0"></script>
-<script src="src/audio.js?v=0.4.0"></script>
-<script src="src/main.js?v=0.4.0"></script>
+<script src="src/config.js?v=0.5.0"></script>
+<script src="src/texts.js?v=0.5.0"></script>
+<script src="src/stages.js?v=0.5.0"></script>
+<script src="src/physics.js?v=0.5.0"></script>
+<script src="src/line.js?v=0.5.0"></script>
+<script src="src/input.js?v=0.5.0"></script>
+<script src="src/render.js?v=0.5.0"></script>
+<script src="src/audio.js?v=0.5.0"></script>
+<script src="src/main.js?v=0.5.0"></script>
 </body>
 </html>

@@ -172,3 +172,13 @@ body:not(.playing) #panel, body:not(.playing) #hud { visibility: hidden; }
 
 .chapter-head { font-size: 15px; font-weight: 800; margin: 10px 2px 0; padding-bottom: 3px; border-bottom: 2px solid var(--navy); }
 .chapter-head:first-child { margin-top: 0; }
+
+/* 第1章「直線便」：グラフの下のボタン */
+#rail-bar { display: none; gap: 8px; }
+body.rail #rail-bar { display: flex; }
+body.rail #buttons { display: none; }
+body.rail #aim-values, body.rail #btn-shadow { visibility: hidden; }
+#rail-bar button { height: 48px; font-size: 17px !important; font-weight: 700; }
+#btn-clear { flex: 1; }
+#btn-go { flex: 2; background: var(--navy) !important; color: var(--white) !important; }
+#btn-go:disabled { opacity: 0.35; }

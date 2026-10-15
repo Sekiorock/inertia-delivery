@@ -8,9 +8,11 @@
     try { var d = JSON.parse(localStorage.getItem(key) || 'null'); return d && typeof d.wallet === 'number' ? d.wallet : null; }
     catch (e) { return null; }
   }
+  // 仕事ごとの収益はそれぞれのゲームが保存し、ホームでは合計を所持金として出す
   var wi = wallet('inertia-delivery-v1'), wp = wallet('parabola-delivery-v1');
-  if (wi != null) $('wallet-inertia').textContent = '所持金 ' + yen(wi);
-  if (wp != null) $('wallet-parabola').textContent = '所持金 ' + yen(wp);
+  $('wallet-inertia').textContent = '収益 ' + yen(wi || 0);
+  $('wallet-parabola').textContent = '収益 ' + yen(wp || 0);
+  $('total-amount').textContent = yen((wi || 0) + (wp || 0));
 
   function setup(cv) {
     var r = Math.min(window.devicePixelRatio || 1, 3), w = cv.clientWidth, h = cv.clientHeight;

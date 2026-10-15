@@ -7,11 +7,12 @@ window.PB = window.PB || {};
   var GROUND = { x: -1000, y: -50, w: 3000, h: 50 };   // 地面（y = 0 が地表）
 
   function createState(stage) {
+    var l0 = stage.launch || { x: 0, y: 0 };   // 第1章のステージには発射台がない
     return {
-      x: stage.launch.x, y: stage.launch.y, vx: 0, vy: 0,
+      x: l0.x, y: l0.y, vx: 0, vy: 0,
       t: 0, flying: false, done: false,
       result: null,          // 'hit' | 'wall' | 'land' | 'out'
-      maxY: stage.launch.y,
+      maxY: l0.y,
       trail: [], nextStrobe: 0,
       v0: 0, theta: 0
     };

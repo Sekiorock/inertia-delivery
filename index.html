@@ -17,6 +17,11 @@
       <p id="lead">今日の仕事を選んでください</p>
     </header>
 
+    <div id="total">
+      <span id="total-label">所持金（2つの仕事の合計）</span>
+      <span id="total-amount"></span>
+    </div>
+
     <a class="job" id="job-inertia" href="inertia/">
       <canvas class="art" id="art-inertia"></canvas>
       <div class="info">
@@ -41,7 +46,7 @@
 
     <footer>
       <button id="btn-qr" type="button">QRコード</button>
-      <span id="version">v1.0.0</span>
+      <span id="version">v1.1.0</span>
     </footer>
   </main>
 
@@ -56,8 +61,8 @@
 </div>
 
 <!-- キャラクターの絵は、それぞれのゲームの描画プログラムを借りて描く -->
-<script src="inertia/src/config.js?v=0.6.1"></script>
-<script src="inertia/src/render.js?v=0.6.1"></script>
+<script src="inertia/src/config.js?v=0.6.2"></script>
+<script src="inertia/src/render.js?v=0.6.2"></script>
 <script src="parabola/src/render.js?v=0.4.0"></script>
 <script src="home.js?v=1.0.0"></script>
 </body>

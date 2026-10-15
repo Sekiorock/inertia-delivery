@@ -387,6 +387,163 @@ window.PB = window.PB || {};
     }
   }
 
-  PB.render = { init: init, resize: resize, draw: draw, drawKuri: drawKuri, toWorldX: toWorldX,
+  // ================= 第1章「直線便」 =================
+  // 下の操作エリアに v-t グラフ、上に横から見たレールと台車を描く。
+  var G = null;   // グラフの枠 [px]
+  function graphRect(stage) {
+    var top = H * (1 - cfg.controlAreaRatio);
+    var gx = 46, gw = W - gx - 14, gy = top + 72, gh = Math.max(80, H - 76 - gy);
+    G = { x: gx, y: gy, w: gw, h: gh, T: stage.T, vMin: stage.vMin, vMax: stage.vMax };
+    return G;
+  }
+  function gX(t) { return G.x + t / G.T * G.w; }
+  function gY(v) { return G.y + (G.vMax - v) / (G.vMax - G.vMin) * G.h; }
+
+  function drawCart(c, x, y, s, R, face) {
+    // 台車（車輪つきの台）と、その上に乗ったくりまんじゅう
+    var w = Math.max(30, 1.8 * s), h = Math.max(10, 0.35 * s), wr = Math.max(5, 0.22 * s);
+    c.fillStyle = NV; c.strokeStyle = NV; c.lineWidth = 2;
+    roundRect(c, x - w / 2, y - wr * 2 - h, w, h, 3); c.fillStyle = '#3B7DD8'; c.fill(); c.stroke();
+    c.fillStyle = WH;
+    [-w * 0.3, w * 0.3].forEach(function (dx) { c.beginPath(); c.arc(x + dx, y - wr, wr, 0, Math.PI * 2); c.fill(); c.stroke(); });
+    drawKuri(c, x, y - wr * 2 - h - R * 0.85, R, 0, face);
+  }
+
+  function drawLine(view) {
+    var stage = view.stage, th = THEMES.day, info = view.info, run = view.run;
+    var stageH = H * (1 - cfg.controlAreaRatio);
+    graphRect(stage);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    // ---- 上：レール
+    var bg = ctx.createLinearGradient(0, 0, 0, stageH);
+    bg.addColorStop(0, th.bgTop); bg.addColorStop(1, th.bgBottom);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, stageH);
+    var x0m = -1.5, x1m = stage.width, s = (W - 16) / (x1m - x0m);
+    function sx(x) { return 8 + (x - x0m) * s; }
+    var ry = Math.round(stageH * 0.62);
+    // 目盛り
+    var step = s * 2 >= 34 ? 2 : (s * 5 >= 34 ? 5 : 10);
+    ctx.strokeStyle = 'rgba(27,42,73,0.1)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (var gx = 0; gx <= x1m; gx += step) { ctx.moveTo(sx(gx), hudBottom + 30); ctx.lineTo(sx(gx), ry); }
+    ctx.stroke();
+    ctx.fillStyle = NV; ctx.fillRect(0, ry, W, 6);
+    ctx.font = '600 10px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (gx = 0; gx <= x1m; gx += step) { ctx.fillRect(sx(gx) - 0.5, ry + 6, 1, 5); ctx.fillText(String(gx), sx(gx), ry + 13); }
+    ctx.textAlign = 'right'; ctx.fillText('[m]', W - 4, ry + 13);
+    // ホーム（届け先）と許容範囲
+    stage.targets.forEach(function (tx, i) {
+      var last = i === stage.targets.length - 1;
+      var name = stage.targets.length > 1 ? (last ? T.depot : T.dest) : T.station;
+      ctx.fillStyle = 'rgba(59,125,216,0.18)';
+      ctx.fillRect(sx(tx - stage.tol), ry - 46, (2 * stage.tol) * s, 46);
+      ctx.fillStyle = NV; ctx.fillRect(sx(tx - stage.tol) - 6, ry - 8, (2 * stage.tol) * s + 12, 8);
+      ctx.strokeStyle = NV; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(tx), ry - 8); ctx.lineTo(sx(tx), ry - 96); ctx.stroke();
+      label(name + ' ' + tx + ' m', sx(tx), ry - 104, WH, NV);
+    });
+    // 予定の到着位置（体感の段階だけ）
+    if (view.showNumbers && info && !run) {
+      ctx.strokeStyle = 'rgba(27,42,73,0.45)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(sx(info.endX), ry - 4); ctx.lineTo(sx(info.endX), ry - 40); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // 1秒ごとの位置（ストロボ）
+    if (run) {
+      ctx.fillStyle = '#3B7DD8';
+      run.trail.forEach(function (p, i) {
+        ctx.beginPath(); ctx.arc(sx(p.x), ry + 30, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(27,42,73,0.55)'; ctx.font = '9px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText((i + 1) + 's', sx(p.x), ry + 36); ctx.fillStyle = '#3B7DD8';
+      });
+    }
+    // 台車
+    var now = run ? run.now : { x: 0, v: 0, a: 0 };
+    var R = Math.max(10, 0.45 * s), cx = sx(now.x);
+    var face = view.result === 'hit' ? 'happy' : (view.result ? 'oops' : 'normal');
+    drawCart(ctx, cx, ry, s, R, face);
+    var cy = ry - 40 - R;
+    if (run && view.arrows !== false) {
+      if (Math.abs(now.v) > 0.02) arrow(cx, cy - 22, cx + now.v / stage.vMax * 70, cy - 22, true, '#3B7DD8');
+      if (Math.abs(now.a) > 1e-9) arrow(cx, cy - 6, cx + now.a / stage.aMax * 40, cy - 6, false, NV, WH);
+    }
+    if (view.freeze) {
+      ctx.strokeStyle = '#3B7DD8'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, ry - 30, 34 + 3 * Math.sin(performance.now() / 150), 0, Math.PI * 2); ctx.stroke();
+    }
+    if (view.fx && view.fx.hit != null) {
+      var pop = Math.min(1, view.fx.hit / 0.2);
+      ctx.globalAlpha = pop; roundRect(ctx, W / 2 - 85, hudBottom + 44, 170, 44, 10); ctx.fillStyle = NV; ctx.fill();
+      ctx.fillStyle = WH; ctx.font = '700 22px ' + FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(T.success, W / 2, hudBottom + 67); ctx.globalAlpha = 1;
+    }
+
+    // ---- 下：v-t グラフ
+    ctx.fillStyle = '#F1F3F7'; ctx.fillRect(0, stageH, W, H - stageH);
+    ctx.strokeStyle = 'rgba(27,42,73,0.3)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, stageH); ctx.lineTo(W, stageH); ctx.stroke();
+    ctx.fillStyle = WH; ctx.fillRect(G.x, G.y, G.w, G.h);
+    // 方眼
+    ctx.strokeStyle = 'rgba(27,42,73,0.1)'; ctx.beginPath();
+    for (var tt = 0; tt <= G.T; tt++) { ctx.moveTo(gX(tt), G.y); ctx.lineTo(gX(tt), G.y + G.h); }
+    for (var vv = Math.ceil(G.vMin); vv <= G.vMax; vv++) { ctx.moveTo(G.x, gY(vv)); ctx.lineTo(G.x + G.w, gY(vv)); }
+    ctx.stroke();
+    ctx.strokeStyle = NV; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(G.x, G.y); ctx.lineTo(G.x, G.y + G.h); ctx.moveTo(G.x, gY(0)); ctx.lineTo(G.x + G.w, gY(0)); ctx.stroke();
+    ctx.fillStyle = NV; ctx.font = '10px ' + FONT; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    var vstep = G.vMax - G.vMin > 8 ? 2 : 1;
+    for (vv = Math.ceil(G.vMin); vv <= G.vMax; vv += vstep) ctx.fillText(String(vv), G.x - 4, gY(vv));
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (tt = 0; tt <= G.T; tt += (G.T > 10 ? 2 : 1)) ctx.fillText(String(tt), gX(tt), G.y + G.h + 3);
+    ctx.font = '600 10px ' + FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('v [m/s]', 4, G.y - 5);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('t [s]', W - 6, G.y + G.h + 14);
+    if (info) {
+      var pts = info.pts;
+      // 面積（走った距離）。走っている間は、すでに走った部分を濃く塗る
+      function areaPath(tEnd) {
+        ctx.beginPath(); ctx.moveTo(gX(0), gY(0));
+        for (var i = 0; i < pts.length; i++) {
+          if (pts[i].t <= tEnd) ctx.lineTo(gX(pts[i].t), gY(pts[i].v));
+          else { var nv = PB.line.at(info, tEnd).v; ctx.lineTo(gX(tEnd), gY(nv)); break; }
+        }
+        ctx.lineTo(gX(Math.min(tEnd, info.endT)), gY(0)); ctx.closePath();
+      }
+      ctx.fillStyle = 'rgba(59,125,216,0.13)'; areaPath(info.endT); ctx.fill();
+      if (run) { ctx.fillStyle = 'rgba(59,125,216,0.38)'; areaPath(run.t); ctx.fill(); }
+      // 折れ線。加速度が大きすぎる区間は点線で示す
+      for (var i = 1; i < pts.length; i++) {
+        var p = pts[i - 1], q = pts[i], a = (q.v - p.v) / ((q.t - p.t) || 1), bad = Math.abs(a) > stage.aMax + 1e-9;
+        ctx.strokeStyle = NV; ctx.lineWidth = bad ? 4 : 3; ctx.setLineDash(bad ? [5, 4] : []);
+        ctx.beginPath(); ctx.moveTo(gX(p.t), gY(p.v)); ctx.lineTo(gX(q.t), gY(q.v)); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      if (view.editable) {
+        ctx.fillStyle = NV;
+        pts.forEach(function (pp) { ctx.beginPath(); ctx.arc(gX(pp.t), gY(pp.v), 3.5, 0, Math.PI * 2); ctx.fill(); });
+      }
+      if (run) {   // 今の時刻
+        ctx.strokeStyle = '#3B7DD8'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(gX(run.t), G.y); ctx.lineTo(gX(run.t), G.y + G.h); ctx.stroke();
+      }
+      // グラフの上の一言
+      ctx.font = '600 12px ' + FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      var msg = '';
+      if (info.maxA > stage.aMax + 1e-9) msg = T.graphTooSteep.replace('{a}', stage.aMax.toFixed(1));
+      else if (view.showNumbers) msg = T.graphArea.replace('{x}', info.endX.toFixed(2)) + '　' + T.graphMaxA.replace('{a}', info.maxA.toFixed(2));
+      else if (view.editable && !run) msg = T.graphHint;
+      ctx.fillStyle = NV; ctx.fillText(msg, G.x + 14, G.y - 5);
+    }
+
+    // 数値
+    el.time.textContent = (run ? run.t : 0).toFixed(2) + ' s';
+    el.x.textContent = now.x.toFixed(2) + ' m';
+    el.y.textContent = now.v.toFixed(2) + ' m/s';
+    el.v.textContent = (Math.abs(now.a) < 1e-9 ? 0 : now.a).toFixed(2) + ' m/s²';
+    if (hudDirty) {
+      hudBottom = document.getElementById('hud').getBoundingClientRect().bottom - canvas.getBoundingClientRect().top;
+      hudDirty = false; L = null;
+    }
+  }
+
+  PB.render = { drawLine: drawLine, graphRect: function (stage) { return graphRect(stage); }, init: init, resize: resize, draw: draw, drawKuri: drawKuri, toWorldX: toWorldX,
                 setWorldChip: function (text) { el.world.textContent = text; } };
 })();
