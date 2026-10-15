@@ -4,70 +4,50 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1B2A49">
-<title>パラボラ便</title>
-<link rel="stylesheet" href="style.css?v=0.3.0">
+<title>慣性デリバリー</title>
+<link rel="stylesheet" href="style.css?v=0.6.0">
 </head>
 <body>
 <div id="frame">
   <canvas id="game"></canvas>
 
-  <!-- 上部の数値 -->
   <div id="hud">
+    <div class="hud-item"><span class="hud-label" id="lbl-speed"></span><span class="hud-value" id="val-speed"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-accel"></span><span class="hud-value" id="val-accel"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-thrust"></span><span class="hud-value" id="val-thrust"></span></div>
     <div class="hud-item"><span class="hud-label" id="lbl-time"></span><span class="hud-value" id="val-time"></span></div>
-    <div class="hud-item"><span class="hud-label" id="lbl-x"></span><span class="hud-value" id="val-x"></span></div>
-    <div class="hud-item"><span class="hud-label" id="lbl-y"></span><span class="hud-value" id="val-y"></span></div>
-    <div class="hud-item"><span class="hud-label" id="lbl-v"></span><span class="hud-value" id="val-v"></span></div>
-    <div id="world-chip"></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-fuel"></span><span class="hud-value" id="val-fuel"></span></div>
+    <div class="hud-item"><span class="hud-label" id="lbl-cost"></span><span class="hud-value" id="val-cost"></span></div>
+    <div id="remain"></div>
   </div>
-
-  <!-- 操作エリアのボタン -->
-  <div id="panel">
-    <div id="readout">
-      <button id="btn-sound" class="icon" type="button">♪</button>
-      <div id="aim-values"><span class="sym">v₀</span><b id="aim-v"></b><span class="unit">m/s</span><span class="sym">θ</span><b id="aim-t"></b><span class="unit">°</span></div>
-      <div class="icons-right"><button id="btn-shadow" class="icon" type="button"></button><button id="btn-pause" class="icon" type="button">II</button></div>
-    </div>
-    <div id="buttons">
-      <div class="nudge"><span>θ</span><button id="t-minus" type="button">−</button><button id="t-plus" type="button">＋</button></div>
-      <div class="nudge"><span>v₀</span><button id="v-minus" type="button">−</button><button id="v-plus" type="button">＋</button></div>
-      <button id="btn-throw" type="button"></button>
-    </div>
-    <div id="version"></div>
-  </div>
-
-  <!-- 途中停止クイズ（操作エリアの上に重ねる） -->
-  <div id="quiz" hidden>
-    <div id="quiz-head"><b id="quiz-title"></b><span id="quiz-q"></span></div>
-    <div id="quiz-grid"></div>
-    <div id="quiz-feedback"><b id="quiz-result"></b><span id="quiz-explain"></span></div>
-    <button id="quiz-go" class="btn primary" type="button"></button>
-  </div>
-
-  <!-- 数値を入力するシート（見積もり・設計） -->
-  <div id="sheet" hidden>
-    <div id="sheet-head"><b id="sheet-title"></b><span id="sheet-sub"></span></div>
-    <div id="sheet-fields"></div>
-    <div id="sheet-msg"></div>
-    <div id="sheet-buttons"><button id="sheet-back" class="btn" type="button"></button><button id="sheet-throw" class="btn primary" type="button"></button></div>
-  </div>
+  <button id="btn-pause" type="button" aria-label="一時停止">II</button>
+  <div id="version"></div>
+  <button id="btn-sound" type="button">♪</button>
 
   <!-- タイトル -->
   <div id="title" class="screen" hidden>
-    <div id="title-company"></div>
     <div id="title-name"></div>
-    <canvas id="title-kuri" width="160" height="160"></canvas>
-    <div id="title-mascot"></div>
     <button id="btn-begin" class="btn primary" type="button"></button>
-    <button id="btn-qr" class="btn small" type="button"></button>
+    <div id="title-sub">
+      <button id="btn-lang" class="btn" type="button"></button>
+      <button id="btn-qr" class="btn" type="button"></button>
+    </div>
   </div>
 
   <!-- QRコード（URLの最後に ?qr=1 を付けると最初に開く） -->
   <div id="qr" class="screen" hidden>
     <div id="qr-name"></div>
     <div id="qr-title"></div>
-    <img id="qr-img" src="src/qr.svg?v=0.3.0" alt="QR">
+    <img id="qr-img" src="src/qr.svg?v=0.6.0" alt="QR">
     <div id="qr-url"></div>
     <button id="btn-qr-back" class="btn primary" type="button"></button>
+  </div>
+
+  <!-- 機体選択 -->
+  <div id="select" class="screen" hidden>
+    <div id="select-title" class="heading"></div>
+    <div id="select-cards"></div>
+    <div id="select-note"></div>
   </div>
 
   <!-- ステージ選択 -->
@@ -75,37 +55,34 @@
     <div id="stages-title" class="heading"></div>
     <div id="stages-wallet"></div>
     <div id="stages-list"></div>
+    <button id="btn-stages-back" class="btn" type="button"></button>
   </div>
 
-  <!-- 依頼 -->
+  <!-- 依頼（冒頭のフック） -->
   <div id="brief" class="screen" hidden>
     <div id="brief-label"></div>
     <div id="brief-name"></div>
-    <div id="brief-mode"></div>
     <div id="brief-hook"></div>
     <div id="brief-info">
-      <div class="row"><span id="brief-g-l"></span><span class="num" id="brief-g"></span></div>
       <div class="row"><span id="brief-base-l"></span><span class="num" id="brief-base"></span></div>
+      <div class="row"><span id="brief-time-l"></span><span class="num" id="brief-time"></span></div>
     </div>
-    <div id="brief-desc"></div>
     <button id="btn-depart" class="btn primary" type="button"></button>
     <button id="btn-brief-back" class="btn" type="button"></button>
   </div>
 
-  <!-- 結果 -->
+  <!-- 結果（給料と燃料代の天引き） -->
   <div id="result" class="screen" hidden>
     <div id="result-title"></div>
-    <div id="result-data"></div>
     <div id="result-rows">
       <div class="row" id="row-base"><span></span><span class="num"></span></div>
       <div class="row" id="row-precision"><span></span><span class="num"></span></div>
-      <div class="row" id="row-predict"><span></span><span class="num"></span></div>
-      <div class="row" id="row-quiz"><span></span><span class="num"></span></div>
-      <div class="row" id="row-estimate"><span></span><span class="num"></span></div>
-      <div class="row" id="row-design"><span></span><span class="num"></span></div>
-      <div class="row" id="row-eff"><span></span><span class="num"></span></div>
+      <div class="row" id="row-speed"><span></span><span class="num"></span></div>
     </div>
-    <div id="pay-box"><div id="pay-label"></div><div id="pay-amount"></div></div>
+    <div id="pay-box">
+      <div id="pay-label"></div>
+      <div id="pay-amount"></div>
+    </div>
     <div id="slip"><span id="slip-label"></span><span class="num" id="slip-amount"></span></div>
     <div id="stars"></div>
     <div id="wallet"></div>
@@ -127,13 +104,13 @@
   </div>
 </div>
 
-<script src="src/config.js?v=0.3.0"></script>
-<script src="src/texts.js?v=0.3.0"></script>
-<script src="src/stages.js?v=0.3.0"></script>
-<script src="src/physics.js?v=0.3.0"></script>
-<script src="src/input.js?v=0.3.0"></script>
-<script src="src/render.js?v=0.3.0"></script>
-<script src="src/audio.js?v=0.3.0"></script>
-<script src="src/main.js?v=0.3.0"></script>
+<script src="src/config.js?v=0.6.0"></script>
+<script src="src/texts.js?v=0.6.0"></script>
+<script src="src/stages.js?v=0.6.0"></script>
+<script src="src/physics.js?v=0.6.0"></script>
+<script src="src/input.js?v=0.6.0"></script>
+<script src="src/render.js?v=0.6.0"></script>
+<script src="src/audio.js?v=0.6.0"></script>
+<script src="src/main.js?v=0.6.0"></script>
 </body>
 </html>

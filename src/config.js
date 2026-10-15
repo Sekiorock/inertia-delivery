@@ -1,47 +1,88 @@
-// 数値の設定。ここを書き換えるだけで調整できる。
-window.PB = window.PB || {};
+// 数値の設定（仕様書 3章・4章・5章）。ここを書き換えるだけで調整できる。
+window.ID = window.ID || {};
 
-PB.config = {
-  version: '0.3.0',
-  publicUrl: 'https://sekiorock.github.io/inertia-delivery/parabola/',   // QRコードの画面に出すURL
-  saveKey: 'parabola-delivery-v1',
-  physicsHz: 120,            // 物理の計算の回数 [回/秒]
+ID.config = {
+  version: '0.6.0',        // 画面の左下に小さく表示する（更新の確認用）
+  publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // QRコードの画面に出すURL
+  worldWidth: 30,          // 画面の横幅に相当する長さ [m]
+  physicsHz: 120,          // 物理計算の回数 [回/秒]
+  exhaustSpeed: 2000,      // 噴射ガスの速さ u [m/s]
+  fuelPrice: 1000,         // 燃料の単価 [円/kg]
 
-  // 打ち出し
-  vMax: 25,                  // 打ち出しの速さの上限 [m/s]
-  speedStep: 0.1,            // 速さの刻み [m/s]
-  angleStep: 1,              // 角度の刻み [°]
-  aimFullPx: 150,            // 指をこれだけずらすと最大の速さ [px]
-  deadZonePx: 8,             // 指を動かしても変わらない「あそび」 [px]
+  // 壁との衝突（仕様書 3章）
+  wallBreakSpeed: 5.0,     // 壁に垂直な向きの速さがこれを超えると荷物破損 [m/s]（生徒の意見で 1.0 から変更）
+  restitution: 0.3,        // 跳ね返るときの反発係数
+  saveKey: 'inertia-delivery-v1',   // 端末のブラウザに保存するときの名前
 
-  // 給料
-  parcelMass: 2,             // くりまんじゅう（荷物ごと）の質量 [kg]
-  energyPrice: 10,           // 打ち出しのエネルギー 1 J あたりの代金 [円]
-  precisionBonusMax: 3000,   // 精度ボーナスの上限 [円]（カゴの中心で満額、ふちで0円）
-  predictBonusMax: 3000,     // 予測ボーナスの上限 [円]（ずれ0で満額、許容範囲のはしで0円）
-  quizBonus: 500,           // 途中停止クイズに正解したときの理解ボーナス [円]（その投てきが成功したとき）
-  estimateBonusEach: 1000,   // 見積もりボーナス：1項目あたりの上限 [円]（飛行時間・最高点・着地距離の3項目）
-  estimateFullPct: 5,        // ずれがこの % 以内なら満額
-  estimateZeroPct: 15,       // ずれがこの % 以上なら0円
-  designBonus: 3000,         // 設計ボーナス：最初の1回で届けたとき [円]
-  efficiencyBonusMax: 2000,  // 効率ボーナスの上限 [円]（最小エネルギーで投げたとき満額）
-  efficiencyZeroRatio: 1.5,  // 最小エネルギーのこの倍以上なら0円
-  star3Ratio: 1.2,           // 手取りが基本給のこの倍以上で星3
-  star2Ratio: 1.0,           // この倍以上で星2（成功すれば最低でも星1）
+  // 配達成功の条件
+  dockMaxSpeed: 0.3,       // この速さ以下 [m/s]
+  dockHoldTime: 1.0,       // 噴射なしでこの時間続く [s]
 
-  // 画面
-  controlAreaRatio: 0.4,     // 画面下側の操作エリアの割合
-  arrowFullPx: 110,          // 速さが上限のときの速度の矢印の長さ [px]
-  accArrowPxPerG: 6,         // 加速度 1 m/s² あたりの矢印の長さ [px]
-  volume: 0.6,
+  // 給料（仕様書 6章）
+  precisionBonusMax: 3000, // 精度ボーナスの上限 [円]。中心でこの額、円のふちで0円
+  speedBonusMax: 6000,     // 速達ボーナスの上限 [円]（生徒の意見で 3000 から変更）
+  speedBonusFullRatio: 0.5,// 目標時間のこの割合以下で届けると速達ボーナスが満額
+  star3Ratio: 1.2,         // 手取りが基本給のこの倍以上で星3
+  star2Ratio: 1.0,         // 手取りが基本給のこの倍以上で星2（成功すれば最低でも星1）
 
-  colors: { navy: '#1B2A49', white: '#FFFFFF' },
+  // 操作
+  stepThresholds: [0, 0.34, 0.67],   // 3段階の機体で、段が切り替わる指の位置（0〜1）
+  controlAreaRatio: 0.4,   // 画面下側の操作エリアの割合
+  deadZonePx: 12,          // 噴射しない「あそび」の半径 [px]
+  fullPowerPx: 120,        // 最大出力になる指の移動距離 [px]
 
-  // 星と斜面。g は重力加速度の大きさ [m/s²]。
-  // 斜面（なめらかに滑る場合）の加速度は g sinθ：10° 1.70、30° 4.90、45° 6.93、60° 8.49。
-  // 斜面・火星・木星は、後の段階で使う。
-  worlds: {
-    earth: { g: 9.80, theme: 'day' },
-    moon:  { g: 1.62, theme: 'space' }
-  }
+  // 矢印の長さ（見た目だけ）
+  velArrowScale: 0.6,      // 速度 1 m/s あたりの長さ [m]
+  accArrowScale: 2.0,      // 加速度 1 m/s² あたりの長さ [m]
+  arrowMaxLength: 14,      // 矢印の長さの上限 [m]
+
+  // 受け取り口に近づいたときのズーム（精密な操作のため）
+  zoomMax: 2.5,            // 最大の拡大率
+  zoomStartDist: 25,       // 受け取り口までこの距離でズームが始まる [m]
+  zoomFullDist: 5,         // この距離で最大の拡大率になり、受け取り口が中央に来る [m]
+
+  shakePx: 1.5,            // 大型機の最大出力で画面が揺れる幅 [px]
+  dockEffectTime: 1.0,     // ドッキングの効果を見せる時間 [s]
+  crashEffectTime: 1.4,    // 荷物破損の演出を見せる時間 [s]
+  volume: 0.6,             // 音量（0〜1）
+
+  outMargin: 15,           // ステージの上下にこれだけ出たら場外 [m]
+
+  colors: { navy: '#1B2A49', white: '#FFFFFF',
+            spaceTop: '#070C1A', spaceBottom: '#16223D' },   // 宇宙の背景（上の色と下の色）
+  gridAlpha: 0.22,         // 5 m ごとの目盛り線の濃さ（0＝見えない、1＝真っ白）
+  gridAlphaFine: 0.12,     // ズーム中の 1 m ごとの目盛り線の濃さ
+  starCount: 110,          // 星の数
+
+  // 機体（仕様書 5章）
+  ships: {
+    shizuka: {
+      id: 'shizuka',
+      name: 'しずか',
+      tagline: '小回りが利く精密派',
+      steps: null,         // 出力は連続的に調整できる
+      mass: 300,           // 質量 [kg]
+      maxThrust: 600,      // 最大推力 [N]
+      minThrust: 30,       // 最小推力 [N]
+      minBurnTime: 0.05,   // 最短の噴射時間 [s]
+      jitterDeg: 6,        // 噴射の向きのぶれ（最大） [°]（生徒の意見で 4 から変更）
+      size: 1.6,           // 四角形の一辺 [m]
+      color: '#F29BB8'
+    },
+    takeshi: {
+      id: 'takeshi',
+      name: 'たけし',
+      tagline: 'パワーで押し切る安定派',
+      mass: 1200,
+      maxThrust: 4800,
+      minThrust: 1440,
+      steps: [0.30, 0.65, 1.00],   // 出力は3段階
+      minBurnTime: 0.1,    // 最短の噴射時間 [s]（細かく止められるように 0.3 から短くした）
+      jitterDeg: 0,        // ぶれなし
+      size: 2.4,
+      color: '#C49A3A'
+    }
+  },
+  shipOrder: ['shizuka', 'takeshi'],
+  defaultShip: 'shizuka'
 };
