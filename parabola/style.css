@@ -82,7 +82,7 @@ body:not(.playing) #panel, body:not(.playing) #hud { visibility: hidden; }
 .world-head { font-size: 13px; font-weight: 700; margin: 6px 2px 0; color: rgba(27, 42, 73, 0.6); }
 .stage-card { border: 2px solid var(--navy); border-radius: 12px; padding: 8px 10px; }
 .stage-card .name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-.stage-card .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stage-card .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .mode-btn { font: inherit; text-align: left; border: 1.5px solid var(--navy); border-radius: 9px; background: var(--white); color: var(--navy); padding: 6px 8px; }
 .mode-btn b { display: block; font-size: 14px; }
 .mode-btn .stars { font-size: 13px; letter-spacing: 1px; }
@@ -97,29 +97,36 @@ body:not(.playing) #panel, body:not(.playing) #hud { visibility: hidden; }
 #brief-hook { margin: 12px 0; padding: 14px; border: 2px solid var(--navy); border-radius: 12px; font-size: 16px; line-height: 1.7; }
 #brief-desc { font-size: 13px; line-height: 1.6; margin: 10px 0 4px; color: rgba(27, 42, 73, 0.75); }
 
-#result { justify-content: center; gap: 8px; padding-left: 24px; padding-right: 24px; }
+#result { justify-content: flex-start; gap: 7px; padding-left: 22px; padding-right: 22px; overflow-y: auto; touch-action: pan-y; }
+#result > :first-child { margin-top: auto; }
+#result > :last-child { margin-bottom: auto; }
 #result-title { font-size: 26px; font-weight: 700; text-align: center; }
-#result-data { font-size: 12px; text-align: center; color: rgba(27, 42, 73, 0.7); font-variant-numeric: tabular-nums; }
+#result-data { font-size: 11px; text-align: center; color: rgba(27, 42, 73, 0.7); font-variant-numeric: tabular-nums; }
 #result-rows { display: flex; flex-direction: column; gap: 2px; }
 #pay-box { border: 2px solid var(--navy); border-radius: 12px; padding: 8px 12px; text-align: center; transition: background 0.3s, color 0.3s; }
 #pay-box.final { background: var(--navy); color: var(--white); }
 #pay-label { font-size: 13px; }
-#pay-amount { font-size: 40px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+#pay-amount { font-size: 36px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
 #slip { display: flex; justify-content: space-between; align-items: baseline; border: 2px dashed var(--navy); border-radius: 8px; padding: 7px 12px; transform: translateX(120%); opacity: 0; transition: transform 0.35s ease-out, opacity 0.1s; }
 #slip.in { transform: translateX(0); opacity: 1; }
 #slip .num { font-size: 18px; font-weight: 600; }
-#stars { text-align: center; font-size: 36px; letter-spacing: 6px; min-height: 46px; }
+#stars { text-align: center; font-size: 32px; letter-spacing: 6px; min-height: 40px; }
 #stars span { color: rgba(27, 42, 73, 0.15); transition: color 0.15s; }
 #stars span.on { color: var(--navy); }
 #wallet { text-align: center; font-size: 14px; }
 #skip-hint { text-align: center; font-size: 11px; color: rgba(27, 42, 73, 0.4); min-height: 1.4em; }
 .hide { visibility: hidden; }
 
-#overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.78); display: flex; align-items: center; justify-content: center; z-index: 2; }
+/* 一時停止・失敗：ステージを覆わず、操作エリアの上だけに出す */
+#overlay { position: absolute; left: 0; right: 0; bottom: 0; top: 60%; background: var(--white); border-top: 2px solid var(--navy); z-index: 2;
+  padding: 10px 14px calc(env(safe-area-inset-bottom, 0px) + 10px); display: flex; flex-direction: column; justify-content: center; }
 #overlay[hidden] { display: none; }
-#overlay-box { width: 82%; background: var(--white); border: 2px solid var(--navy); border-radius: 12px; padding: 18px 16px; text-align: center; }
-#overlay-title { font-size: 21px; font-weight: 700; margin-bottom: 8px; }
-#overlay-body { font-size: 14px; line-height: 1.8; margin-bottom: 8px; white-space: pre-line; font-variant-numeric: tabular-nums; }
+#overlay-box { width: 100%; text-align: center; }
+#overlay-title { font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+#overlay-body { font-size: 13px; line-height: 1.7; margin-bottom: 4px; white-space: pre-line; font-variant-numeric: tabular-nums; }
+#overlay-body:empty { display: none; }
+#overlay-buttons { display: flex; gap: 8px; }
+#overlay-buttons .btn { margin-top: 6px; font-size: 15px; padding: 10px 6px; }
 
 /* 影の切り替え：オンのときは塗りつぶし */
 #btn-shadow { font-size: 14px !important; }
@@ -143,3 +150,22 @@ body:not(.playing) #panel, body:not(.playing) #hud { visibility: hidden; }
 #quiz-feedback b { margin-right: 6px; font-size: 15px; }
 #quiz .btn { margin-top: 0; padding: 9px; }
 #quiz-go[hidden] { display: none; }
+
+/* 数値を入力するシート（見積もり・設計）：操作エリアの上に重ねる */
+#sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 60%; background: var(--white); border-top: 2px solid var(--navy); z-index: 1;
+  padding: 8px 14px calc(env(safe-area-inset-bottom, 0px) + 8px); display: flex; flex-direction: column; gap: 5px; }
+#sheet[hidden] { display: none; }
+#sheet-head { display: flex; flex-direction: column; }
+#sheet-title { font-size: 16px; }
+#sheet-sub { font-size: 12px; color: rgba(27, 42, 73, 0.75); font-variant-numeric: tabular-nums; }
+#sheet-fields { display: flex; flex-direction: column; gap: 5px; flex: 1; min-height: 0; justify-content: center; }
+.field { display: flex; align-items: center; gap: 8px; }
+.field .fl { flex: 1; font-size: 14px; font-weight: 600; }
+.field input { width: 6.5em; font: inherit; font-size: 20px; font-weight: 700; text-align: right; padding: 5px 8px;
+  border: 2px solid var(--navy); border-radius: 8px; color: var(--navy); background: var(--white);
+  -webkit-user-select: text; user-select: text; font-variant-numeric: tabular-nums; }
+.field .fu { width: 2.2em; font-size: 14px; color: rgba(27, 42, 73, 0.7); }
+#sheet-msg { font-size: 12px; min-height: 1.2em; color: rgba(27, 42, 73, 0.8); }
+#sheet-buttons { display: flex; gap: 8px; }
+#sheet-buttons .btn { margin-top: 0; padding: 10px 6px; font-size: 16px; }
+#result-data { line-height: 1.6; }

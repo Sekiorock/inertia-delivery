@@ -98,7 +98,24 @@ window.PB = window.PB || {};
   }
 
   // 給料：手取り = 基本給 + 精度ボーナス + 予測ボーナス − エネルギー代
-  function calcPay(st, stage, cfg, mode, pinX, quizBonus) {
+  // カゴの中心に届く投げ方のうち、打ち出しのエネルギーが最小のもの（設計の段階の効率ボーナス用）
+  // 角度ごとに、カゴの中心を通る速さを公式 v² = g x² / (2 cos²θ (x tanθ − h)) で求め、障害物に当たらないか確かめる。
+  function minEnergy(stage, g, cfg) {
+    var x = stage.basket.x - stage.launch.x, h = stage.basket.y - stage.launch.y, best = null;
+    for (var th = 0.25; th < 90; th += 0.25) {
+      var r = th * Math.PI / 180, c = Math.cos(r), den = 2 * c * c * (x * Math.tan(r) - h);
+      if (den <= 0) continue;
+      var v = Math.sqrt(g * x * x / den);
+      if (v > cfg.vMax || (best && v >= best.v)) continue;
+      var p = predict(stage, g, v, th, 1 / 240);
+      if (p.result === 'hit') best = { v: v, theta: th };
+    }
+    if (best) best.energy = 0.5 * cfg.parcelMass * best.v * best.v;
+    return best;
+  }
+
+  // extra = { quiz, estimate, design, efficiency }：段階ごとのボーナス [円]
+  function calcPay(st, stage, cfg, mode, pinX, extra) {
     var b = stage.basket;
     var precision = Math.round(cfg.precisionBonusMax * Math.max(0, 1 - Math.abs(st.x - b.x) / (b.w / 2)));
     var predict = 0, err = null;
@@ -108,13 +125,14 @@ window.PB = window.PB || {};
     }
     var energy = 0.5 * cfg.parcelMass * st.v0 * st.v0;     // 打ち出しのエネルギー ½mv₀² [J]
     var cost = Math.round(energy * cfg.energyPrice);
-    var quiz = quizBonus || 0;
-    var gross = stage.basePay + precision + predict + quiz;
+    extra = extra || {};
+    var quiz = extra.quiz || 0, est = extra.estimate || 0, des = extra.design || 0, eff = extra.efficiency || 0;
+    var gross = stage.basePay + precision + predict + quiz + est + des + eff;
     var net = gross - cost;
     var stars = net >= stage.basePay * cfg.star3Ratio ? 3 : (net >= stage.basePay * cfg.star2Ratio ? 2 : 1);
-    return { base: stage.basePay, precision: precision, predict: predict, quiz: quiz, err: err,
+    return { base: stage.basePay, precision: precision, predict: predict, quiz: quiz, estimate: est, design: des, efficiency: eff, err: err,
              energy: energy, cost: cost, gross: gross, net: net, stars: stars };
   }
 
-  PB.physics = { createState: createState, launch: launch, step: step, predict: predict, calcPay: calcPay };
+  PB.physics = { createState: createState, launch: launch, step: step, predict: predict, calcPay: calcPay, minEnergy: minEnergy };
 })();

@@ -2,7 +2,7 @@
 window.PB = window.PB || {};
 
 PB.config = {
-  version: '0.2.0',
+  version: '0.3.0',
   publicUrl: 'https://sekiorock.github.io/inertia-delivery/parabola/',   // QRコードの画面に出すURL
   saveKey: 'parabola-delivery-v1',
   physicsHz: 120,            // 物理の計算の回数 [回/秒]
@@ -20,6 +20,12 @@ PB.config = {
   precisionBonusMax: 3000,   // 精度ボーナスの上限 [円]（カゴの中心で満額、ふちで0円）
   predictBonusMax: 3000,     // 予測ボーナスの上限 [円]（ずれ0で満額、許容範囲のはしで0円）
   quizBonus: 500,           // 途中停止クイズに正解したときの理解ボーナス [円]（その投てきが成功したとき）
+  estimateBonusEach: 1000,   // 見積もりボーナス：1項目あたりの上限 [円]（飛行時間・最高点・着地距離の3項目）
+  estimateFullPct: 5,        // ずれがこの % 以内なら満額
+  estimateZeroPct: 15,       // ずれがこの % 以上なら0円
+  designBonus: 3000,         // 設計ボーナス：最初の1回で届けたとき [円]
+  efficiencyBonusMax: 2000,  // 効率ボーナスの上限 [円]（最小エネルギーで投げたとき満額）
+  efficiencyZeroRatio: 1.5,  // 最小エネルギーのこの倍以上なら0円
   star3Ratio: 1.2,           // 手取りが基本給のこの倍以上で星3
   star2Ratio: 1.0,           // この倍以上で星2（成功すれば最低でも星1）
 

@@ -263,6 +263,15 @@ window.PB = window.PB || {};
       var wx = Math.max(8, sx(stage.launch.x) - 18), gyS = L.gy - 4;
       ctx.strokeStyle = th.fgA + '0.3)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
       ctx.beginPath(); ctx.moveTo(wx, L.gy); ctx.lineTo(wx, hudBottom + 30); ctx.stroke(); ctx.setLineDash([]);
+      if (view.guides) {
+        ctx.strokeStyle = th.fgA + '0.18)'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        st.trail.forEach(function (p) {
+          ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(sx(p.x), gyS);
+          ctx.moveTo(sx(p.x), sy(p.y)); ctx.lineTo(wx, sy(p.y));
+        });
+        ctx.stroke(); ctx.setLineDash([]);
+      }
       ctx.fillStyle = th.accent;
       st.trail.forEach(function (p) {
         ctx.beginPath(); ctx.arc(sx(p.x), gyS, 2.5, 0, Math.PI * 2); ctx.fill();
