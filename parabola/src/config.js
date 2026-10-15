@@ -2,13 +2,15 @@
 window.PB = window.PB || {};
 
 PB.config = {
-  version: '0.3.0',
-  publicUrl: 'https://sekiorock.github.io/inertia-delivery/parabola/',   // QRコードの画面に出すURL
+  version: '0.4.0',
+  publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // ホーム画面のURL
+  homeUrl: '../',              // 「ホームへ」で戻る先
   saveKey: 'parabola-delivery-v1',
   physicsHz: 120,            // 物理の計算の回数 [回/秒]
 
   // 打ち出し
-  vMax: 25,                  // 打ち出しの速さの上限 [m/s]
+  vMax: 25,                  // 打ち出しの速さの上限 [m/s]（ステージに vMax があればそちらを使う）
+  vMaxDefault: 25,
   speedStep: 0.1,            // 速さの刻み [m/s]
   angleStep: 1,              // 角度の刻み [°]
   aimFullPx: 150,            // 指をこれだけずらすと最大の速さ [px]
@@ -39,8 +41,13 @@ PB.config = {
 
   // 星と斜面。g は重力加速度の大きさ [m/s²]。
   // 斜面（なめらかに滑る場合）の加速度は g sinθ：10° 1.70、30° 4.90、45° 6.93、60° 8.49。
-  // 斜面・火星・木星は、後の段階で使う。
+  // slope がある世界は、上から見た斜面のテーブル。g には斜面に沿った加速度 g sinθ を入れる。
+  // 火星・木星は、後の段階で使う。
   worlds: {
+    slope10: { g: 1.70, slope: 10, theme: 'table' },
+    slope30: { g: 4.90, slope: 30, theme: 'table' },
+    slope45: { g: 6.93, slope: 45, theme: 'table' },
+    slope60: { g: 8.49, slope: 60, theme: 'table' },
     earth: { g: 9.80, theme: 'day' },
     moon:  { g: 1.62, theme: 'space' }
   }

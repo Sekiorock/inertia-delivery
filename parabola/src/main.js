@@ -11,6 +11,8 @@ window.PB = window.PB || {};
   var DT = 1 / cfg.physicsHz;
   function $(id) { return document.getElementById(id); }
   function yen(n) { return (n < 0 ? '−' : '') + Math.abs(n).toLocaleString('ja-JP') + T.yen; }
+  // 重力の表示：斜面では g sinθ、それ以外は g
+  function gText(w) { return (w.slope ? 'g sinθ = ' : 'g = ') + w.g.toFixed(2) + ' m/s²'; }
   function fill(tpl, o) { return tpl.replace(/\{(\w+)\}/g, function (m, k) { return o[k]; }); }
   function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
 
@@ -41,6 +43,7 @@ window.PB = window.PB || {};
   function isOpen(k) {
     if (unlockAll || k === 0) return true;
     var i = order[k].i, m = MODES.indexOf(order[k].mode);
+    if (m === 0 && (i === 0 || stages[i - 1].chapter !== stages[i].chapter)) return true;   // 章の最初のステージ
     return m === 0 ? cleared(i - 1, 'predict') : cleared(i, MODES[m - 1]);
   }
 
@@ -84,11 +87,15 @@ window.PB = window.PB || {};
     $('stages-title').textContent = T.stageList;
     $('stages-wallet').textContent = T.wallet + ' ' + yen(save.wallet);
     var list = $('stages-list'); list.innerHTML = '';
-    var lastWorld = null;
+    var lastWorld = null, lastChapter = null;
     stages.forEach(function (s, i) {
+      if (s.chapter !== lastChapter) {
+        var ch = document.createElement('div'); ch.className = 'chapter-head';
+        ch.textContent = T.chapterNames[s.chapter] || ''; list.appendChild(ch); lastChapter = s.chapter;
+      }
       if (s.world !== lastWorld) {
         var h = document.createElement('div'); h.className = 'world-head';
-        h.textContent = T.worldNames[s.world] + '　g = ' + cfg.worlds[s.world].g.toFixed(2) + ' m/s²';
+        h.textContent = T.worldNames[s.world] + '　' + gText(cfg.worlds[s.world]);
         list.appendChild(h); lastWorld = s.world;
       }
       var card = document.createElement('div'); card.className = 'stage-card';
@@ -121,7 +128,7 @@ window.PB = window.PB || {};
     $('brief-name').textContent = T.stageNames[stage.id];
     $('brief-mode').textContent = T.worldNames[stage.world] + '　／　' + T.modeNames[mode];
     $('brief-hook').textContent = '「' + T.stageHooks[stage.id] + '」';
-    $('brief-g-l').textContent = T.gravity + ' g'; $('brief-g').textContent = world.g.toFixed(2) + ' m/s²';
+    $('brief-g-l').textContent = world.slope ? T.slopeAcc : T.gravity + ' g'; $('brief-g').textContent = world.g.toFixed(2) + ' m/s²';
     $('brief-base-l').textContent = T.basePay; $('brief-base').textContent = yen(stage.basePay);
     $('brief-desc').textContent = T.modeDesc[mode];
     show('brief');
@@ -133,7 +140,10 @@ window.PB = window.PB || {};
     aim = aims[stage.id] || { v: 10, theta: 45 };
     pin = null; paused = false; acc = 0;
     document.body.classList.toggle('space', world.theme === 'space');
-    PB.render.setWorldChip(T.worldNames[stage.world] + '　g = ' + world.g.toFixed(2) + ' m/s²');
+    PB.render.setWorldChip(T.worldNames[stage.world] + '　' + gText(world));
+    cfg.vMax = stage.vMax || cfg.vMaxDefault;   // ステージごとの速さの上限
+    $('lbl-y').textContent = world.slope ? T.hud.ySlope : T.hud.y;
+    $('lbl-x').textContent = world.slope ? T.hud.xSlope : T.hud.x;
     show('aim');
     $('btn-throw').textContent = mode === 'estimate' ? T.estimateBtn : T.throwBtn;
     if (mode === 'design') {   // 設計：数値だけで狙う
@@ -208,10 +218,10 @@ window.PB = window.PB || {};
       timer = setTimeout(function () { showResult(pay); }, 1300);
     } else {
       PB.audio.play('miss');
-      var body = T.missLand + ' ' + rel(st.x) + ' m ／ ' + T.basketAt + ' ' + rel(stage.basket.x) + ' m';
+      var body = (st.result === 'top' ? '' : T.missLand + ' ' + rel(st.x) + ' m ／ ') + T.basketAt + ' ' + rel(stage.basket.x) + ' m';
       if (pin != null) body += '\n' + T.predictLabel + ' ' + rel(pin) + ' m';
       if (mode === 'estimate' || mode === 'design') body += '\n' + fill(T.actualLine, { t: st.t.toFixed(2), h: (st.maxY - stage.launch.y).toFixed(2), x: rel(st.x) });
-      var title = st.result === 'wall' ? T.missWall : (st.result === 'out' ? T.missOut : T.missTitle);
+      var title = st.result === 'wall' ? T.missWall : (st.result === 'out' ? T.missOut : (st.result === 'top' ? T.missTop : T.missTitle));
       timer = setTimeout(function () {
         showOverlay(title, body, [[T.retrySame, startAim], [T.stageSelect, showStages]]);
       }, 900);
@@ -339,7 +349,7 @@ window.PB = window.PB || {};
     } else {
       var d = designInputs[stage.id] || {};
       $('sheet-title').textContent = T.designTitle;
-      $('sheet-sub').textContent = fill(T.designSub, { x: (stage.basket.x - stage.launch.x).toFixed(1), h: (stage.basket.y - stage.launch.y).toFixed(1), g: world.g.toFixed(2) });
+      $('sheet-sub').textContent = fill(T.designSub, { x: (stage.basket.x - stage.launch.x).toFixed(1), h: (stage.basket.y - stage.launch.y).toFixed(1), g: world.g.toFixed(2) }).replace('g = ', world.slope ? 'g sinθ = ' : 'g = ');
       f.appendChild(field('in-v', T.fieldV, 'm/s', d.v));
       f.appendChild(field('in-th', T.fieldTheta, '°', d.t));
       ['in-v', 'in-th'].forEach(function (id) {
@@ -495,7 +505,7 @@ window.PB = window.PB || {};
   $('title-name').textContent = T.title;
   $('title-mascot').textContent = T.mascot;
   $('btn-begin').textContent = T.begin; $('btn-begin').addEventListener('click', showStages);
-  $('btn-qr').textContent = T.qrButton; $('btn-qr').addEventListener('click', function () { show('qr'); });
+  $('btn-qr').textContent = T.homeButton; $('btn-qr').addEventListener('click', function () { location.href = cfg.homeUrl; });   // ホーム画面へ
   $('qr-name').textContent = T.title; $('qr-title').textContent = T.qrTitle; $('qr-url').textContent = cfg.publicUrl;
   $('btn-qr-back').textContent = T.qrBack; $('btn-qr-back').addEventListener('click', function () { show('title'); });
   $('btn-depart').textContent = T.depart; $('btn-depart').addEventListener('click', startAim);

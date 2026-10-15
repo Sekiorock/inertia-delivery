@@ -83,6 +83,9 @@ window.PB = window.PB || {};
       st.result = inBasket ? 'hit' : (c.face === 'side' ? 'wall' : 'land');
       return;
     }
+    if (stage.topRail && st.y > stage.height) {   // 斜面のテーブル：上の端から落ちた
+      st.flying = false; st.done = true; st.result = 'top'; return;
+    }
     if (st.x < -5 || st.x > stage.width + 5 || st.t > 120) {
       st.flying = false; st.done = true; st.result = 'out';
     }

@@ -169,3 +169,6 @@ body:not(.playing) #panel, body:not(.playing) #hud { visibility: hidden; }
 #sheet-buttons { display: flex; gap: 8px; }
 #sheet-buttons .btn { margin-top: 0; padding: 10px 6px; font-size: 16px; }
 #result-data { line-height: 1.6; }
+
+.chapter-head { font-size: 15px; font-weight: 800; margin: 10px 2px 0; padding-bottom: 3px; border-bottom: 2px solid var(--navy); }
+.chapter-head:first-child { margin-top: 0; }

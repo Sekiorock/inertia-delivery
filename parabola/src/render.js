@@ -11,6 +11,7 @@ window.PB = window.PB || {};
   // 星ごとの色。白とネイビーを基本に、差し色を1色だけ使う。
   var THEMES = {
     day:   { bgTop: '#E6EFFA', bgBottom: '#FFFFFF', fg: NV, fgA: 'rgba(27,42,73,', ground: NV, groundText: WH, accent: '#3B7DD8' },
+    table: { bgTop: '#F5F2EA', bgBottom: '#E9E2D2', fg: NV, fgA: 'rgba(27,42,73,', ground: NV, groundText: WH, accent: '#2E9E78' },
     space: { bgTop: '#070C1A', bgBottom: '#16223D', fg: WH, fgA: 'rgba(255,255,255,', ground: '#A7AEB9', groundText: NV, accent: '#C9CED6' }
   };
 
@@ -175,6 +176,22 @@ window.PB = window.PB || {};
       ctx.beginPath(); ctx.ellipse(ex + 5, ey + 6, 5, 2, 0.3, 0, Math.PI * 2); ctx.fill();
     }
 
+    // 斜面のテーブル：右上に横から見た坂の図と、下り向きの矢印
+    if (world.slope) {
+      var bx0 = W - 92, by0 = hudBottom + 62, bl = 64, ar = world.slope * Math.PI / 180;
+      ctx.fillStyle = 'rgba(255,255,255,0.85)'; roundRect(ctx, bx0 - 10, by0 - 50, 96, 64, 8); ctx.fill();
+      ctx.strokeStyle = NV; ctx.lineWidth = 2; ctx.fillStyle = 'rgba(46,158,120,0.25)';
+      var hh = Math.min(42, bl * Math.tan(ar)), ww = hh / Math.tan(ar);
+      ctx.beginPath(); ctx.moveTo(bx0, by0); ctx.lineTo(bx0 + ww, by0); ctx.lineTo(bx0 + ww, by0 - hh); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(bx0, by0, 14, -ar, 0); ctx.stroke();
+      ctx.fillStyle = NV; ctx.font = '700 12px ' + FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(world.slope + '°', bx0 + ww + 6, by0 - 8);
+      // テーブルの左側に「下り」の矢印
+      arrow(W - 18, by0 + 34, W - 18, by0 + 84, true, th.accent);
+      ctx.fillStyle = th.accent; ctx.font = '700 11px ' + FONT; ctx.textAlign = 'center';
+      ctx.fillText(T.slopeDown, W - 18, by0 + 24);
+    }
+
     // 方眼（目盛りと同じ間隔）
     // 横の目盛りは、発射台の位置を 0 m とする
     var step = niceStep(s), x0 = stage.launch.x;
@@ -197,6 +214,12 @@ window.PB = window.PB || {};
       ctx.fillText(String(Math.round(rel(gx))), sx(gx), L.gy + 7);
     }
     ctx.textAlign = 'right'; ctx.fillText('[m]', W - 4, L.gy + 17);
+
+    // 斜面のテーブル：上の端
+    if (stage.topRail) {
+      ctx.fillStyle = 'rgba(27,42,73,0.08)'; ctx.fillRect(0, 0, W, sy(stage.height));   // テーブルの外
+      ctx.fillStyle = th.ground; ctx.fillRect(0, sy(stage.height) - 4, W, 4);
+    }
 
     // 台と壁
     ctx.fillStyle = th.ground;
@@ -224,7 +247,7 @@ window.PB = window.PB || {};
     for (var z = 0; z < 3; z++) { ctx.moveTo(lx - 8, ly - 8 - z * 5); ctx.lineTo(lx + 8, ly - 10 - z * 5); }
     ctx.stroke();
 
-    var R = Math.max(9, 0.5 * s);   // くりまんじゅうの半径 [px]
+    var R = Math.max(9, (stage.kuriR || 0.5) * s);   // くりまんじゅうの半径 [px]
     var flying = st.flying, landed = st.done;
 
     // 予測の段階：着地点の予測（たて線）
