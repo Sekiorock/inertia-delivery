@@ -60,5 +60,30 @@ PB.stages = [
   { id: 'm3', chapter: 3, quiz: [ { at: 'rise', ask: 'vel', answer: 'ne', explain: 'm3' } ],
     world: 'moon', basePay: 9000, width: 110, height: 70,
     launch: { x: 4, y: 0 }, basket: { x: 84, y: 0, w: 5 },
-    rects: [ { x: 40, y: 0, w: 4, h: 30 } ], strobe: 0.5, predictTol: 10 }
+    rects: [ { x: 40, y: 0, w: 4, h: 30 } ], strobe: 0.5, predictTol: 10 },
+  // 火星（g = 3.71 m/s²）：遠くまで飛ぶぶん、エネルギー代の単価を 1 J あたり 6 円にしている
+  { id: 'ma1', chapter: 3, world: 'mars', basePay: 5500, energyPrice: 6, width: 64, height: 32,
+    quiz: [ { at: 'apex', ask: 'accMag', answer: '3.71', options: ['9.80', '3.71', '1.62'], explain: 'ma1' } ],
+    launch: { x: 2, y: 0 }, basket: { x: 54.8, y: 0, w: 4 }, rects: [], strobe: 0.25, predictTol: 6 },
+  { id: 'ma2', chapter: 3, world: 'mars', basePay: 6000, energyPrice: 6, width: 64, height: 36,
+    quiz: [ { at: 'rise', ask: 'acc', answer: 's', explain: 'ma2' } ],
+    launch: { x: 2, y: 0 }, basket: { x: 47, y: 12, w: 4 },
+    rects: [ { x: 42, y: 0, w: 10, h: 12 } ], strobe: 0.25, predictTol: 6 },
+  { id: 'ma3', chapter: 3, world: 'mars', basePay: 7000, energyPrice: 6, width: 90, height: 40,
+    quiz: [ { at: 'descent', ask: 'vel', answer: 'se', explain: 'ma3' } ],
+    launch: { x: 3, y: 15 }, basket: { x: 60, y: 0, w: 5 },
+    rects: [ { x: 0, y: 0, w: 6, h: 15 } ], strobe: 0.25, predictTol: 6 },
+  // 木星（g = 24.79 m/s²）：雲の上に浮かぶステーションのデッキ
+  // 重力が強く速く投げる必要があるので、エネルギー代の単価を 1 J あたり 4 円に下げている（木星手当）
+  { id: 'j1', chapter: 3, world: 'jupiter', basePay: 6000, energyPrice: 4, width: 16, height: 12,
+    quiz: [ { at: 'apex', ask: 'accMag', answer: '24.79', options: ['9.80', '24.79', '2.48'], explain: 'j1' } ],
+    launch: { x: 1, y: 0 }, basket: { x: 11, y: 0, w: 1.5 }, rects: [], strobe: 0.05, predictTol: 1.5 },
+  { id: 'j2', chapter: 3, world: 'jupiter', basePay: 6500, energyPrice: 4, width: 16, height: 12,
+    quiz: [ { at: 'apex', ask: 'vel', answer: 'e', explain: 'j2' } ],
+    launch: { x: 1, y: 0 }, basket: { x: 12, y: 4, w: 1.5 },
+    rects: [ { x: 10.5, y: 0, w: 3.5, h: 4 } ], strobe: 0.05, predictTol: 1.5 },
+  { id: 'j3', chapter: 3, world: 'jupiter', basePay: 7500, energyPrice: 4, width: 16, height: 14,
+    quiz: [ { at: 'descent', ask: 'acc', answer: 's', explain: 'j3' } ],
+    launch: { x: 1, y: 0 }, basket: { x: 10.5, y: 0, w: 1.5 },
+    rects: [ { x: 7, y: 0, w: 0.4, h: 5 }, { x: 11.6, y: 0, w: 0.4, h: 8 } ], strobe: 0.05, predictTol: 1.5 }
 ];

@@ -306,7 +306,7 @@ window.PB = window.PB || {};
       hitAt = performance.now();
       PB.audio.play('dock'); vibrate([30, 40, 30]);
       var extra = { quiz: quizEarned }, lines = [];
-      var actual = { t: st.t, h: st.maxY - stage.launch.y, x: st.x - stage.launch.x };
+      var actual = { t: st.t, h: st.maxY, x: st.x - stage.launch.x };
       if (mode === 'estimate' && est) {
         extra.estimate = 0;
         [['t', T.estT, 's'], ['h', T.estH, 'm'], ['x', T.estX, 'm']].forEach(function (f) {
@@ -334,7 +334,7 @@ window.PB = window.PB || {};
       PB.audio.play('miss');
       var body = (st.result === 'top' ? '' : T.missLand + ' ' + rel(st.x) + ' m ／ ') + T.basketAt + ' ' + rel(stage.basket.x) + ' m';
       if (pin != null) body += '\n' + T.predictLabel + ' ' + rel(pin) + ' m';
-      if (mode === 'estimate' || mode === 'design') body += '\n' + fill(T.actualLine, { t: st.t.toFixed(2), h: (st.maxY - stage.launch.y).toFixed(2), x: rel(st.x) });
+      if (mode === 'estimate' || mode === 'design') body += '\n' + fill(T.actualLine, { t: st.t.toFixed(2), h: st.maxY.toFixed(2), x: rel(st.x) });
       var title = st.result === 'wall' ? T.missWall : (st.result === 'out' ? T.missOut : (st.result === 'top' ? T.missTop : T.missTitle));
       timer = setTimeout(function () {
         showOverlay(title, body, [[T.retrySame, startAim], [T.stageSelect, showStages]]);

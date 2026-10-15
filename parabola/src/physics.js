@@ -42,7 +42,7 @@ window.PB = window.PB || {};
         } else if (vy < 0) {
           tau = (y0 - top) / -vy;
         }
-        if (tau >= 0 && tau <= dt) {
+        if (tau > 1e-9 && tau <= dt) {
           var xc = x0 + vx * tau;
           if (xc >= rx0 && xc <= rx1 && (!best || tau < best.tau)) best = { tau: tau, x: xc, y: top, rect: r, face: 'top' };
         }
@@ -128,7 +128,7 @@ window.PB = window.PB || {};
       predict = Math.round(cfg.predictBonusMax * Math.max(0, 1 - err / stage.predictTol));
     }
     var energy = 0.5 * cfg.parcelMass * st.v0 * st.v0;     // 打ち出しのエネルギー ½mv₀² [J]
-    var cost = Math.round(energy * cfg.energyPrice);
+    var cost = Math.round(energy * (stage.energyPrice || cfg.energyPrice));   // ステージごとに単価を変えられる
     extra = extra || {};
     var quiz = extra.quiz || 0, est = extra.estimate || 0, des = extra.design || 0, eff = extra.efficiency || 0;
     var gross = stage.basePay + precision + predict + quiz + est + des + eff;

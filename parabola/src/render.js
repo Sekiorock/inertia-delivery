@@ -12,6 +12,8 @@ window.PB = window.PB || {};
   var THEMES = {
     day:   { bgTop: '#E6EFFA', bgBottom: '#FFFFFF', fg: NV, fgA: 'rgba(27,42,73,', ground: NV, groundText: WH, accent: '#3B7DD8' },
     table: { bgTop: '#F5F2EA', bgBottom: '#E9E2D2', fg: NV, fgA: 'rgba(27,42,73,', ground: NV, groundText: WH, accent: '#2E9E78' },
+    mars: { bgTop: '#E8B48E', bgBottom: '#F7E3D2', fg: NV, fgA: 'rgba(27,42,73,', ground: '#A5532F', groundText: WH, accent: '#C2562B' },
+    jupiter: { bgTop: '#D9A86A', bgBottom: '#F6E4C4', fg: NV, fgA: 'rgba(27,42,73,', ground: NV, groundText: WH, accent: '#B5651D' },
     space: { bgTop: '#070C1A', bgBottom: '#16223D', fg: WH, fgA: 'rgba(255,255,255,', ground: '#A7AEB9', groundText: NV, accent: '#C9CED6' }
   };
 
@@ -166,6 +168,17 @@ window.PB = window.PB || {};
     var bg = ctx.createLinearGradient(0, 0, 0, stageH);
     bg.addColorStop(0, th.bgTop); bg.addColorStop(1, th.bgBottom);
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, stageH);
+    if (world.theme === 'mars') {   // 火星の空に、2つの小さな衛星
+      ctx.fillStyle = 'rgba(120,80,60,0.55)';
+      ctx.beginPath(); ctx.arc(W - 60, hudBottom + 50, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W - 34, hudBottom + 72, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    if (world.theme === 'jupiter') {   // 木星の雲のしま模様
+      for (var bi = 0; bi < 6; bi++) {
+        ctx.fillStyle = bi % 2 ? 'rgba(181,101,29,0.10)' : 'rgba(255,255,255,0.12)';
+        ctx.fillRect(0, stageH * (0.15 + bi * 0.13), W, stageH * 0.06);
+      }
+    }
     if (world.theme === 'space') {
       drawStars(stage, stageH);
       // 空に浮かぶ地球
@@ -379,7 +392,7 @@ window.PB = window.PB || {};
     el.time.textContent = st.t.toFixed(2) + ' s';
     function m2(v) { return (Math.abs(v) < 0.005 ? 0 : v).toFixed(2); }   // −0.00 と出ないように
     el.x.textContent = m2(st.x - stage.launch.x) + ' m';
-    el.y.textContent = m2(st.y - stage.launch.y) + ' m';
+    el.y.textContent = m2(st.y) + ' m';   // 地面からの高さ
     el.v.textContent = (landed ? 0 : vNow).toFixed(2) + ' m/s';
     if (hudDirty) {
       hudBottom = document.getElementById('hud').getBoundingClientRect().bottom - canvas.getBoundingClientRect().top;

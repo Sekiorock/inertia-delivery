@@ -2,7 +2,7 @@
 window.PB = window.PB || {};
 
 PB.config = {
-  version: '0.5.0',
+  version: '0.6.0',
   publicUrl: 'https://sekiorock.github.io/inertia-delivery/',   // ホーム画面のURL
   homeUrl: '../',              // 「ホームへ」で戻る先
   saveKey: 'parabola-delivery-v1',
@@ -48,7 +48,6 @@ PB.config = {
   // 星と斜面。g は重力加速度の大きさ [m/s²]。
   // 斜面（なめらかに滑る場合）の加速度は g sinθ：10° 1.70、30° 4.90、45° 6.93、60° 8.49。
   // slope がある世界は、上から見た斜面のテーブル。g には斜面に沿った加速度 g sinθ を入れる。
-  // 火星・木星は、後の段階で使う。
   worlds: {
     rail: { g: 0, rail: true, theme: 'day' },   // 第1章：まっすぐなレール
     slope10: { g: 1.70, slope: 10, theme: 'table' },
@@ -56,6 +55,8 @@ PB.config = {
     slope45: { g: 6.93, slope: 45, theme: 'table' },
     slope60: { g: 8.49, slope: 60, theme: 'table' },
     earth: { g: 9.80, theme: 'day' },
-    moon:  { g: 1.62, theme: 'space' }
+    moon:  { g: 1.62, theme: 'space' },
+    mars:  { g: 3.71, theme: 'mars' },
+    jupiter: { g: 24.79, theme: 'jupiter' }   // 木星は地面がないので、雲の上に浮かぶステーションのデッキで投げる
   }
 };
